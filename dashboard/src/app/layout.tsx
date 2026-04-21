@@ -1,31 +1,24 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
-import NavLink from "@/components/NavLink";
-import ThemeToggle from "@/components/ThemeToggle";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import Sidebar from "@/components/Sidebar";
+import TopBar from "@/components/TopBar";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
-  title: "Swarm Capital",
-  description: "AI-Native Hedge Fund Dashboard",
+  title: "Daub — Research Workbench",
+  description: "AI-Native Quantitative Research Platform",
 };
-
-const navItems = [
-  { href: "/", label: "Portfolio" },
-  { href: "/agents", label: "Agents" },
-  { href: "/signals", label: "Signals" },
-  { href: "/trades", label: "Trades" },
-];
 
 export default function RootLayout({
   children,
@@ -33,66 +26,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full`}
-      suppressHydrationWarning
-    >
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full`}>
       <head>
-        <Script
-          id="theme-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme:dark)").matches);if(d)document.documentElement.classList.add("dark")}catch(e){}})()`,
-          }}
-        />
+        <style>{`
+          :root {
+            --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+            --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+            --sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+            --mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+          }
+        `}</style>
       </head>
       <body
-        className="min-h-full flex flex-col"
-        style={{ background: "var(--bg)", color: "var(--fg)" }}
+        style={{
+          margin: 0,
+          background: "var(--bg)",
+          color: "var(--fg)",
+          display: "flex",
+          height: "100vh",
+          overflow: "hidden",
+        }}
       >
-        {/* Top nav */}
-        <nav
-          className="shrink-0"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
-          <div className="flex items-center justify-between px-6 h-14">
-            <div className="flex items-center gap-8">
-              <h1
-                className="text-sm font-bold tracking-[0.1em] uppercase"
-                style={{ color: "var(--fg)" }}
-              >
-                Swarm Capital
-              </h1>
-              <div className="flex items-center gap-1">
-                {navItems.map((item) => (
-                  <NavLink
-                    key={item.href}
-                    href={item.href}
-                    label={item.label}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <div
-                className="text-[10px] font-mono px-2 py-1 uppercase tracking-wider"
-                style={{
-                  color: "var(--fg-muted)",
-                  border: "1px solid var(--border)",
-                }}
-              >
-                Paper
-              </div>
-            </div>
-          </div>
-        </nav>
-
-        {/* Main content — full width, no max-w cap */}
-        <main className="flex-1 overflow-auto">
-          <div className="px-6 py-6">{children}</div>
-        </main>
+        <Sidebar />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <TopBar />
+          <main style={{ flex: 1, overflow: "auto" }}>
+            <div style={{ padding: 16 }}>{children}</div>
+          </main>
+        </div>
       </body>
     </html>
   );

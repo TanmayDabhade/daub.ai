@@ -1,24 +1,16 @@
 "use client";
 
-/**
- * Generic tile wrapper for the dashboard grid.
- * Provides consistent border and background.
- */
 export default function Tile({
   children,
   className = "",
+  style,
 }: {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
-    <div
-      className={`overflow-hidden ${className}`}
-      style={{
-        border: "1px solid var(--border)",
-        background: "var(--bg-card)",
-      }}
-    >
+    <div className={`card ${className}`} style={style}>
       {children}
     </div>
   );

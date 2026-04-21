@@ -1,270 +1,154 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import TradeRow from "@/components/TradeRow";
+import ConfBar from "@/components/ConfBar";
 import { supabase } from "@/lib/supabase";
 import type { Trade } from "@/lib/types";
 
-const DEMO_TRADES: Trade[] = [
-  {
-    id: "1",
-    signal_id: "1",
-    ticker: "NVDA",
-    direction: "long",
-    quantity: 15,
-    entry_price: 875.5,
-    exit_price: null,
-    pnl: null,
-    alpaca_order_id: "mock-001",
-    status: "open",
-    opened_at: "2026-04-10T14:00:00.000Z",
-    closed_at: null,
-  },
-  {
-    id: "2",
-    signal_id: "2",
-    ticker: "META",
-    direction: "long",
-    quantity: 12,
-    entry_price: 520.3,
-    exit_price: 535.8,
-    pnl: 186.0,
-    alpaca_order_id: "mock-002",
-    status: "closed",
-    opened_at: "2026-04-07T10:00:00.000Z",
-    closed_at: "2026-04-09T16:00:00.000Z",
-  },
-  {
-    id: "3",
-    signal_id: "3",
-    ticker: "JPM",
-    direction: "long",
-    quantity: 20,
-    entry_price: 215.0,
-    exit_price: null,
-    pnl: null,
-    alpaca_order_id: "mock-003",
-    status: "open",
-    opened_at: "2026-04-11T13:00:00.000Z",
-    closed_at: null,
-  },
-  {
-    id: "4",
-    signal_id: "4",
-    ticker: "TSLA",
-    direction: "short",
-    quantity: 8,
-    entry_price: 248.9,
-    exit_price: 255.2,
-    pnl: -50.4,
-    alpaca_order_id: "mock-004",
-    status: "stopped_out",
-    opened_at: "2026-04-08T09:30:00.000Z",
-    closed_at: "2026-04-09T16:00:00.000Z",
-  },
-  {
-    id: "5",
-    signal_id: "5",
-    ticker: "XOM",
-    direction: "short",
-    quantity: 25,
-    entry_price: 118.4,
-    exit_price: null,
-    pnl: null,
-    alpaca_order_id: "mock-005",
-    status: "open",
-    opened_at: "2026-04-11T02:00:00.000Z",
-    closed_at: null,
-  },
+const BLOTTER_ROWS = [
+  { id: "#2847", ts: "14:29", tk: "AVGO", dir: "Buy",    qty: 4,  px: 1846.20, n: 7384.80,  st: "Filled",   c: 0.88, lat: "124 ms" },
+  { id: "#2846", ts: "13:47", tk: "TSLA", dir: "Sell",   qty: 12, px: 348.55,  n: 4182.60,  st: "Filled",   c: 0.68, lat: "98 ms" },
+  { id: "#2845", ts: "11:22", tk: "LLY",  dir: "Buy",    qty: 3,  px: 826.10,  n: 2478.30,  st: "Filled",   c: 0.91, lat: "156 ms" },
+  { id: "#2844", ts: "10:08", tk: "XOM",  dir: "Cover",  qty: 10, px: 115.80,  n: 1158.00,  st: "Partial",  c: 0.71, lat: "212 ms" },
+  { id: "#2843", ts: "09:34", tk: "NVDA", dir: "Buy",    qty: 5,  px: 889.40,  n: 4447.00,  st: "Filled",   c: 0.87, lat: "88 ms" },
+  { id: "#2842", ts: "09:31", tk: "GS",   dir: "Buy",    qty: 2,  px: 610.50,  n: 1221.00,  st: "Rejected", c: 0.64, lat: "44 ms", rsn: "confidence below threshold" },
 ];
 
-export default function TradesPage() {
-  const [trades, setTrades] = useState<Trade[]>(DEMO_TRADES);
+function QRow({ l, v, cls }: { l: string; v: string; cls?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+      <span className="mute" style={{ fontSize: 11, flex: 1 }}>{l}</span>
+      <span className={"mono " + (cls || "")} style={{ fontSize: 13, fontWeight: 500 }}>{v}</span>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    if (!supabase) return;
+function OrderField({ l, v, pill }: { l: string; v: string; pill?: string }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "8px 12px", background: "var(--bg-2)", borderRadius: "var(--r-sm)",
+    }}>
+      <span className="mute" style={{ fontSize: 10.5, width: 54, textTransform: "uppercase", letterSpacing: "0.04em" }}>{l}</span>
+      {pill
+        ? <span className={"pill " + pill} style={{ fontSize: 10 }}>{v}</span>
+        : <span className="mono" style={{ fontWeight: 500 }}>{v}</span>
+      }
+    </div>
+  );
+}
 
-    supabase
-      .from("trades")
-      .select("*")
-      .order("opened_at", { ascending: false })
-      .limit(100)
-      .then(({ data }) => {
-        if (data?.length) setTrades(data);
-      });
+export default function BlotterPage() {
+  const [statusFilter, setStatusFilter] = useState("All");
 
-    const channel = supabase
-      .channel("trades")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "trades" },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setTrades((prev) => [payload.new as Trade, ...prev]);
-          } else if (payload.eventType === "UPDATE") {
-            setTrades((prev) =>
-              prev.map((t) =>
-                t.id === (payload.new as Trade).id
-                  ? (payload.new as Trade)
-                  : t
-              )
-            );
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase!.removeChannel(channel);
-    };
-  }, []);
-
-  const closedTrades = trades.filter((t) => t.status !== "open");
-  const winningTrades = closedTrades.filter((t) => (t.pnl ?? 0) > 0);
-  const winRate =
-    closedTrades.length > 0
-      ? winningTrades.length / closedTrades.length
-      : 0;
-  const totalPnl = closedTrades.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
-  const avgWin =
-    winningTrades.length > 0
-      ? winningTrades.reduce((sum, t) => sum + (t.pnl ?? 0), 0) /
-        winningTrades.length
-      : 0;
-  const losingTrades = closedTrades.filter((t) => (t.pnl ?? 0) < 0);
-  const avgLoss =
-    losingTrades.length > 0
-      ? losingTrades.reduce((sum, t) => sum + (t.pnl ?? 0), 0) /
-        losingTrades.length
-      : 0;
+  const filtered = statusFilter === "All"
+    ? BLOTTER_ROWS
+    : BLOTTER_ROWS.filter((r) =>
+        statusFilter === "Filled" ? r.st === "Filled" : r.st !== "Filled" && r.st !== "Rejected"
+      );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold" style={{ color: "var(--fg)" }}>
-          Trade Log
-        </h2>
-        {!supabase && (
-          <span
-            className="text-[10px] px-2 py-1 font-mono uppercase tracking-wider"
-            style={{
-              color: "var(--yellow)",
-              border: "1px solid var(--yellow)",
-            }}
-          >
-            Demo
-          </span>
-        )}
-      </div>
-
-      {/* Summary stats */}
-      <div
-        className="grid grid-cols-2 md:grid-cols-5 gap-px"
-        style={{ background: "var(--border)" }}
-      >
-        <div className="p-3" style={{ background: "var(--bg)" }}>
-          <p
-            className="text-[10px] uppercase tracking-wider"
-            style={{ color: "var(--fg-muted)" }}
-          >
-            Total Trades
-          </p>
-          <p
-            className="text-lg font-mono font-semibold"
-            style={{ color: "var(--fg)" }}
-          >
-            {trades.length}
-          </p>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 14 }}>
+      {/* Blotter table */}
+      <div className="card">
+        <div className="card-head">
+          <h3>Blotter</h3>
+          <span className="sub">paper account · Alpaca</span>
+          <span style={{ flex: 1 }} />
+          {["All", "Filled", "Pending"].map((f) => (
+            <button
+              key={f}
+              className={"btn " + (statusFilter === f ? "active" : "")}
+              onClick={() => setStatusFilter(f)}
+            >
+              {f}
+            </button>
+          ))}
         </div>
-        <div className="p-3" style={{ background: "var(--bg)" }}>
-          <p
-            className="text-[10px] uppercase tracking-wider"
-            style={{ color: "var(--fg-muted)" }}
-          >
-            Win Rate
-          </p>
-          <p
-            className="text-lg font-mono font-semibold"
-            style={{ color: "var(--green)" }}
-          >
-            {(winRate * 100).toFixed(0)}%
-          </p>
-        </div>
-        <div className="p-3" style={{ background: "var(--bg)" }}>
-          <p
-            className="text-[10px] uppercase tracking-wider"
-            style={{ color: "var(--fg-muted)" }}
-          >
-            Total P&L
-          </p>
-          <p
-            className="text-lg font-mono font-semibold"
-            style={{
-              color: totalPnl >= 0 ? "var(--green)" : "var(--red)",
-            }}
-          >
-            {totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}
-          </p>
-        </div>
-        <div className="p-3" style={{ background: "var(--bg)" }}>
-          <p
-            className="text-[10px] uppercase tracking-wider"
-            style={{ color: "var(--fg-muted)" }}
-          >
-            Avg Win
-          </p>
-          <p
-            className="text-lg font-mono font-semibold"
-            style={{ color: "var(--green)" }}
-          >
-            +${avgWin.toFixed(2)}
-          </p>
-        </div>
-        <div className="p-3" style={{ background: "var(--bg)" }}>
-          <p
-            className="text-[10px] uppercase tracking-wider"
-            style={{ color: "var(--fg-muted)" }}
-          >
-            Avg Loss
-          </p>
-          <p
-            className="text-lg font-mono font-semibold"
-            style={{ color: "var(--red)" }}
-          >
-            ${avgLoss.toFixed(2)}
-          </p>
-        </div>
-      </div>
-
-      {/* Trade table */}
-      <div style={{ border: "1px solid var(--border)" }}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div style={{ overflow: "auto" }}>
+          <table className="t">
             <thead>
-              <tr
-                className="text-[10px] uppercase tracking-wider"
-                style={{
-                  borderBottom: "1px solid var(--border)",
-                  color: "var(--fg-muted)",
-                }}
-              >
-                <th className="text-left px-4 py-3 font-medium">Date</th>
-                <th className="text-left px-4 py-3 font-medium">Ticker</th>
-                <th className="text-left px-4 py-3 font-medium">Direction</th>
-                <th className="text-right px-4 py-3 font-medium">Qty</th>
-                <th className="text-right px-4 py-3 font-medium">Entry</th>
-                <th className="text-right px-4 py-3 font-medium">Exit</th>
-                <th className="text-right px-4 py-3 font-medium">P&L</th>
-                <th className="text-right px-4 py-3 font-medium">Duration</th>
-                <th className="text-left px-4 py-3 font-medium">Status</th>
+              <tr>
+                <th>Order</th>
+                <th>Time</th>
+                <th>Ticker</th>
+                <th>Side</th>
+                <th className="num">Qty</th>
+                <th className="num">Price</th>
+                <th className="num">Notional</th>
+                <th>Status</th>
+                <th>Conf.</th>
+                <th>Latency</th>
               </tr>
             </thead>
             <tbody>
-              {trades.map((trade) => (
-                <TradeRow key={trade.id} trade={trade} />
+              {filtered.map((r) => (
+                <tr key={r.id}>
+                  <td className="mute mono">{r.id}</td>
+                  <td className="mute">{r.ts}</td>
+                  <td><span className="tkr">{r.tk}</span></td>
+                  <td>
+                    <span className={"pill " + (r.dir === "Buy" ? "up" : r.dir === "Sell" ? "dn" : "acc")}>
+                      {r.dir}
+                    </span>
+                  </td>
+                  <td className="num">{r.qty}</td>
+                  <td className="num">{r.px.toFixed(2)}</td>
+                  <td className="num">${r.n.toLocaleString()}</td>
+                  <td>
+                    <span className={"pill " + (r.st === "Filled" ? "up" : r.st === "Rejected" ? "dn" : "gold")}>
+                      {r.st}
+                    </span>
+                    {"rsn" in r && r.rsn && (
+                      <div className="mute" style={{ fontSize: 10, marginTop: 3 }}>{r.rsn}</div>
+                    )}
+                  </td>
+                  <td><ConfBar v={r.c} /></td>
+                  <td className="mute mono" style={{ fontSize: 11 }}>{r.lat}</td>
+                </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="card">
+          <div className="card-head"><h3>Execution health · 24h</h3></div>
+          <div style={{ padding: "14px 18px", display: "flex", flexDirection: "column", gap: 10, fontSize: 12 }}>
+            <QRow l="Orders"       v="47" />
+            <QRow l="Fill rate"    v="95.7%" cls="up" />
+            <QRow l="Avg latency"  v="126 ms" />
+            <QRow l="Avg slippage" v="1.8 bp" />
+            <QRow l="Rejected"     v="2" />
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-head"><h3>Manual entry</h3></div>
+          <div style={{ padding: "14px 18px", display: "flex", flexDirection: "column", gap: 10, fontSize: 11.5 }}>
+            <OrderField l="Symbol" v="NVDA" />
+            <OrderField l="Side"   v="Buy"         pill="up" />
+            <OrderField l="Qty"    v="10" />
+            <OrderField l="Type"   v="Limit @ 892.00" />
+
+            <div style={{ padding: 10, background: "var(--bg-2)", borderRadius: "var(--r-sm)" }}>
+              <div style={{ display: "flex", fontSize: 11 }}>
+                <span className="mute" style={{ flex: 1 }}>Notional</span>
+                <span className="mono">$8,920.00</span>
+              </div>
+              <div style={{ display: "flex", fontSize: 11, marginTop: 3 }}>
+                <span className="mute" style={{ flex: 1 }}>Risk check</span>
+                <span className="mono up">Pass</span>
+              </div>
+            </div>
+
+            <button className="btn active" style={{ padding: "8px" }}>Submit order</button>
+            <div className="mute" style={{ fontSize: 10, textAlign: "center" }}>
+              Paper account · no real capital at risk
+            </div>
+          </div>
         </div>
       </div>
     </div>
