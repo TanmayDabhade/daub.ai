@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Daub.ai Workbench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="styles/workbench.css"/>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="data.js"></script>
+
+<script type="text/babel">
+const D = window.DAUB_DATA;
+const M = D.meta;
+
+const TWEAKS = /*EDITMODE-BEGIN*/{
+  "accent": "rose",
+  "density": "comfortable",
+  "showPulse": true
+}/*EDITMODE-END*/;
+
+const ACCENT_MAP = {
+  indigo: { "--accent":"#8b5cf6","--accent-d":"#6d42d1","--accent-hi":"#b39aff","--accent-bg":"rgba(139,92,246,0.12)" },
+  teal:   { "--accent":"#22d3ee","--accent-d":"#0891b2","--accent-hi":"#67e8f9","--accent-bg":"rgba(34,211,238,0.12)" },
+  lime:   { "--accent":"#a3e635","--accent-d":"#65a30d","--accent-hi":"#bef264","--accent-bg":"rgba(163,230,53,0.12)" },
+  rose:   { "--accent":"#fb7185","--accent-d":"#e11d48","--accent-hi":"#fda4af","--accent-bg":"rgba(251,113,133,0.12)" },
+};
+
+/* ─── Primitives ─────────────────────────────────────────────────────── */
+function Card({ title, sub, right, chips, children, style, bodyStyle }) {
+  return (
+    <div className="card" style={style}>
+      {(title || right) && (
+        <div className="card-head">
+          {title && <h3>{title}</h3>}
+          {sub && <span className="sub">{sub}</span>}
+          {chips && chips.map((c,i) => <span key={i} className="chip">{c}</span>)}
+          <span className="spacer"/>
+          {right}
+        </div>
+      )}
+      <div style={{ ...bodyStyle }}>{children}</div>
+    </div>
+  );
+}
+
+function Sparkline({ data, w=70, h=20, color="auto", fill=true }) {
+  if (!data || data.length<2) return null;
+  const min=Math.min(...data), max=Math.max(...data), rng=max-min||1;
+  const pts = data.map((v,i)=>[(i/(data.length-1))*w, h-((v-min)/rng)*h]);
+  const last=data[data.length-1], first=data[0];
+  const c = color==="auto" ? (last>=first?"var(--up)":"var(--down)") : color;
+  const polyline = pts.map(p=>p.map(n=>n.toFixed(1)).join(",")).join(" ");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display:"block" }}>
+      {fill && <polygon points={`0,${h} ${polyline} ${w},${h}`} fill={c} opacity="0.15"/>}
+      <polyline points={polyline} fill="none" stroke={c} strokeWidth="1.25" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function LineChart({ data, h=180 }) {
+  const w=600, pad={l:40,r:10,t:10,b:22};
+  const min=Math.min(...data), max=Math.max(...data), rng=max-min||1;
+  const xStep=(w-pad.l-pad.r)/(data.length-1);
+  const pts=data.map((v,i)=>[pad.l+i*xStep, pad.t+(h-pad.t-pad.b)-((v-min)/rng)*(h-pad.t-pad.b)]);
+  const last=data[data.length-1], first=data[0], up=last>=first;
+  const color = up?"var(--up)":"var(--down)";
+  const polyline = pts.map(p=>p.map(n=>n.toFixed(1)).join(",")).join(" ");
+  const area = `${pad.l},${h-pad.b} ${polyline} ${w-pad.r},${h-pad.b}`;
+  const ticks = [0,0.25,0.5,0.75,1].map(t=>min+rng*t);
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} preserveAspectRatio="none" style={{ display:"block" }}>
+      <defs>
+        <linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={up?"#34d399":"#f87171"} stopOpacity="0.28"/>
+          <stop offset="100%" stopColor={up?"#34d399":"#f87171"} stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      {ticks.map((t,i)=>{
+        const y=pad.t+(h-pad.t-pad.b)-((t-min)/rng)*(h-pad.t-pad.b);
+        return (
+          <g key={i}>
+            <line x1={pad.l} x2={w-pad.r} y1={y} y2={y} stroke="var(--line)" strokeDasharray="2 4" opacity="0.5"/>
+            <text x={pad.l-6} y={y+3} textAnchor="end" fontSize="9" fill="var(--fg-mute)" fontFamily="var(--mono)">
+              ${(t/1000).toFixed(1)}k
+            </text>
+          </g>
+        );
+      })}
+      <polygon points={area} fill="url(#lcg)"/>
+      <polyline points={polyline} fill="none" stroke={color} strokeWidth="1.75" strokeLinejoin="round"/>
+      <circle cx={pts[pts.length-1][0]} cy={pts[pts.length-1][1]} r="3" fill={color}/>
+      <circle cx={pts[pts.length-1][0]} cy={pts[pts.length-1][1]} r="6" fill={color} opacity="0.2"/>
+    </svg>
+  );
+}
+
+function Donut({ slices, size=130, inner=40 }) {
+  const total=slices.reduce((s,x)=>s+x.v,0);
+  let acc=0;
+  const r=size/2-8, cx=size/2, cy=size/2;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {slices.map((s,i)=>{
+        const pct=s.v/total, start=acc; acc+=pct;
+        const a1=start*2*Math.PI-Math.PI/2, a2=(start+pct)*2*Math.PI-Math.PI/2;
+        const large=pct>0.5?1:0;
+        const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+        const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
+        return <path key={i} d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`} fill="none" stroke={s.c} strokeWidth={inner/2.5}/>;
+      })}
+      <text x={cx} y={cy-2} textAnchor="middle" fontSize="11" fill="var(--fg-mute)" fontFamily="var(--sans)">Total</text>
+      <text x={cx} y={cy+14} textAnchor="middle" fontSize="14" fontWeight="600" fill="var(--fg)" fontFamily="var(--mono)">
+        ${(total/1000).toFixed(0)}k
+      </text>
+    </svg>
+  );
+}
+
+function Gauge({ value, label }) {
+  const w=180, h=100, cx=w/2, cy=h-10, r=72;
+  const pct=value/100;
+  const a=Math.PI+pct*Math.PI;
+  const px=cx+r*Math.cos(a), py=cy+r*Math.sin(a);
+  const arcs=[];
+  const colors=["#f87171","#fb923c","#f59e0b","#a3e635","#34d399"];
+  for (let i=0;i<5;i++){
+    const a1=Math.PI+(i/5)*Math.PI, a2=Math.PI+((i+1)/5)*Math.PI;
+    arcs.push(
+      <path key={i}
+        d={`M ${cx+r*Math.cos(a1)} ${cy+r*Math.sin(a1)} A ${r} ${r} 0 0 1 ${cx+r*Math.cos(a2)} ${cy+r*Math.sin(a2)}`}
+        fill="none" stroke={colors[i]} strokeWidth="8" strokeLinecap="butt" opacity="0.85"/>
+    );
+  }
+  return (
+    <svg width={w} height={h+22} viewBox={`0 0 ${w} ${h+22}`}>
+      {arcs}
+      <line x1={cx} y1={cy} x2={px} y2={py} stroke="var(--fg)" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx={cx} cy={cy} r="4" fill="var(--fg)"/>
+      <text x={cx} y={h+15} textAnchor="middle" fontSize="11" fill="var(--fg-dim)" fontFamily="var(--sans)">{label}</text>
+    </svg>
+  );
+}
+
+function ConfBar({ v, w=52 }) {
+  const col = v>=0.8?"var(--up)":v>=0.65?"var(--accent)":"var(--down)";
+  return (
+    <div style={{ display:"inline-flex", alignItems:"center", gap:6 }}>
+      <div className="bar" style={{ width:w }}>
+        <div className="bar-inner" style={{ width:`${v*100}%`, background:col }}/>
+      </div>
+      <span className="mono" style={{ fontSize:10.5, color:col }}>{v.toFixed(2)}</span>
+    </div>
+  );
+}
+
+function Swatch({ sect }) {
+  const m = { tech:"var(--s-tech)", fin:"var(--s-fin)", hlth:"var(--s-hlth)",
+              indu:"var(--s-indu)", cons:"var(--s-cons)", ener:"var(--s-ener)", def:"var(--s-def)" };
+  return <span style={{ display:"inline-block", width:3, height:18, borderRadius:2, background:m[sect]||"var(--fg-mute)" }}/>;
+}
+
+/* ─── Sidebar ────────────────────────────────────────────────────────── */
+function Sidebar({ route, setRoute }) {
+  const groups = [
+    { g:"Workspace", items:[
+      { k:"home",   l:"Dashboard",   i:"◉" },
+      { k:"signal", l:"Signal Desk", i:"◆" },
+      { k:"agents", l:"Agent Swarm", i:"◇" },
+    ]},
+    { g:"Research", items:[
+      { k:"rsrch",  l:"Research",    i:"◈" },
+      { k:"risk",   l:"Risk Radar",  i:"◐" },
+      { k:"screen", l:"Screener",    i:"▣" },
+    ]},
+    { g:"Execution", items:[
+      { k:"exec",   l:"Blotter",     i:"▤" },
+      { k:"alerts", l:"Alerts",      i:"▲", badge:3 },
+    ]},
+  ];
+  return (
+    <div style={{
+      width:212, background:"var(--bg-1)", borderRight:"1px solid var(--line)",
+      display:"flex", flexDirection:"column", flexShrink:0
+    }}>
+      {/* brand */}
+      <div style={{ padding:"16px 18px", display:"flex", alignItems:"center", gap:10, borderBottom:"1px solid var(--line)" }}>
+        <div style={{
+          width:28, height:28, borderRadius:7,
+          background:"linear-gradient(135deg, var(--accent) 0%, var(--accent-d) 100%)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          color:"#fff", fontWeight:700, fontSize:14, fontFamily:"var(--mono)"
+        }}>d</div>
+        <div>
+          <div style={{ fontSize:13, fontWeight:600, letterSpacing:"-0.01em" }}>Daub</div>
+          <div className="mono mute" style={{ fontSize:9.5, letterSpacing:"0.08em", textTransform:"uppercase" }}>research · v0.4</div>
+        </div>
+      </div>
+
+      <div style={{ padding:"12px 0", flex:1, overflow:"auto" }}>
+        {groups.map(g => (
+          <div key={g.g} style={{ marginBottom:14 }}>
+            <div className="mute" style={{ padding:"4px 18px", fontSize:10, textTransform:"uppercase", letterSpacing:"0.08em", fontWeight:500 }}>{g.g}</div>
+            {g.items.map(it => {
+              const on = route===it.k;
+              return (
+                <div key={it.k} onClick={()=>setRoute(it.k)} style={{
+                  margin:"1px 8px", padding:"7px 10px",
+                  display:"flex", alignItems:"center", gap:10,
+                  borderRadius: "var(--r-sm)",
+                  background: on ? "var(--accent-bg)" : "transparent",
+                  color: on ? "var(--accent-hi)" : "var(--fg-dim)",
+                  cursor:"pointer",
+                  fontSize:12.5,
+                  fontWeight: on?500:400,
+                  transition:"all 80ms"
+                }} onMouseEnter={e=>{ if(!on) e.currentTarget.style.background="var(--bg-2)"; }}
+                   onMouseLeave={e=>{ if(!on) e.currentTarget.style.background="transparent"; }}>
+                  <span className="mono" style={{ width:16, textAlign:"center", color: on?"var(--accent)":"var(--fg-mute)" }}>{it.i}</span>
+                  <span style={{ flex:1 }}>{it.l}</span>
+                  {it.badge && <span className="pill" style={{ background:"var(--accent)", color:"#fff", fontSize:9, padding:"1px 6px" }}>{it.badge}</span>}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* footer */}
+      <div style={{ padding:"12px 16px", borderTop:"1px solid var(--line)", display:"flex", alignItems:"center", gap:10 }}>
+        <div style={{
+          width:26, height:26, borderRadius:"50%",
+          background:"var(--bg-3)", display:"flex", alignItems:"center", justifyContent:"center",
+          fontSize:11, fontWeight:600
+        }}>T</div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:11.5, fontWeight:500 }}>Tanmay D.</div>
+          <div className="mute" style={{ fontSize:10 }}>Paper · $186.7k</div>
+        </div>
+        <span className="mono mute" style={{ fontSize:10 }}>⚙</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── TopBar ─────────────────────────────────────────────────────────── */
+function TopBar({ search, setSearch, clock }) {
+  return (
+    <div style={{
+      height:50, display:"flex", alignItems:"center", gap:14,
+      padding:"0 18px",
+      background:"var(--bg)",
+      borderBottom:"1px solid var(--line)"
+    }}>
+      <div style={{
+        flex:1, maxWidth:520, height:34, display:"flex", alignItems:"center", gap:10,
+        padding:"0 12px",
+        background:"var(--bg-1)",
+        border:"1px solid var(--line-2)",
+        borderRadius: "var(--r-md)"
+      }}>
+        <span className="mute" style={{ fontSize:13 }}>⌕</span>
+        <input placeholder="Search ticker, ask question, or run command" value={search} onChange={e=>setSearch(e.target.value)}/>
+        <span className="kbd">⌘K</span>
+      </div>
+
+      <div style={{ flex:1 }}/>
+
+      <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:11 }}>
+        <span className="dot live"/>
+        <span className="dim">Market open</span>
+        <span className="mute">·</span>
+        <span className="mono">{clock}</span>
+      </div>
+
+      <button className="btn ghost">◐</button>
+      <button className="btn ghost" style={{ position:"relative" }}>
+        ▣
+        <span style={{ position:"absolute", top:3, right:3, width:6, height:6, borderRadius:"50%", background:"var(--accent)" }}/>
+      </button>
+    </div>
+  );
+}
+
+/* ─── Pulse Strip (replaces ticker tape) ─────────────────────────────── */
+function PulseStrip() {
+  const items = [
+    { l:"S&P 500",   v:"5,842.3",  d:"+0.82%", up:true },
+    { l:"Nasdaq",    v:"18,420",   d:"+1.14%", up:true },
+    { l:"Dow",       v:"42,186",   d:"+0.36%", up:true },
+    { l:"VIX",       v:"14.80",    d:"-3.90%", up:true },
+    { l:"UST10",     v:"4.18%",    d:"-4bp",   up:true },
+    { l:"DXY",       v:"101.4",    d:"-0.3%",  up:true },
+    { l:"Brent",     v:"$71.80",   d:"-1.64%", up:false },
+    { l:"BTC",       v:"$94,820",  d:"+2.41%", up:true },
+    { l:"Breadth",   v:"312 / 186",d:"adv/dec",up:true },
+  ];
+  return (
+    <div style={{
+      display:"grid",
+      gridTemplateColumns:`repeat(${items.length}, 1fr)`,
+      gap:1, background:"var(--line)",
+      border:"1px solid var(--line)",
+      borderRadius:"var(--r-md)",
+      overflow:"hidden"
+    }}>
+      {items.map((it,i)=>(
+        <div key={i} style={{ padding:"10px 14px", background:"var(--card)" }}>
+          <div className="mute" style={{ fontSize:10, letterSpacing:"0.04em", textTransform:"uppercase", fontWeight:500 }}>{it.l}</div>
+          <div style={{ display:"flex", alignItems:"baseline", gap:7, marginTop:3 }}>
+            <span className="mono" style={{ fontSize:13, fontWeight:500 }}>{it.v}</span>
+            <span className={"mono " + (it.up?"up":"down")} style={{ fontSize:10.5 }}>{it.d}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Route: Dashboard ───────────────────────────────────────────────── */
+function Dashboard() {
+  // sector aggregation
+  const sectMap = {};
+  D.positions.forEach(p => {
+    const tk = D.tickers.find(x=>x.t===p.t);
+    const s = tk?.sect || "tech";
+    sectMap[s] = (sectMap[s]||0) + p.mv;
+  });
+  const colorMap = { tech:"var(--s-tech)", fin:"var(--s-fin)", hlth:"var(--s-hlth)", indu:"var(--s-indu)", cons:"var(--s-cons)", ener:"var(--s-ener)", def:"var(--s-def)" };
+  const slices = Object.entries(sectMap).map(([k,v])=>({ k, v, c: colorMap[k] }));
+
+  return (
+    <div style={{ padding:16, display:"flex", flexDirection:"column", gap:14 }}>
+      <PulseStrip/>
+
+      {/* hero KPIs */}
+      <div style={{ display:"grid", gridTemplateColumns:"1.4fr 1fr 1fr 1fr", gap:14 }}>
+        <Card>
+          <div style={{ padding:"18px 22px" }}>
+            <div style={{ display:"flex", alignItems:"baseline", gap:10 }}>
+              <span className="mute" style={{ fontSize:11, textTransform:"uppercase", letterSpacing:"0.06em" }}>Portfolio value</span>
+              <span className="pill up" style={{ fontSize:10 }}>+{M.dailyPnlPct}% today</span>
+            </div>
+            <div className="mono" style={{ fontSize:30, fontWeight:600, marginTop:6, letterSpacing:"-0.02em" }}>
+              ${M.portVal.toLocaleString(undefined,{maximumFractionDigits:2})}
+            </div>
+            <div style={{ display:"flex", gap:20, marginTop:10, fontSize:11 }}>
+              <Kpi l="Today" v={`+$${M.dailyPnl.toFixed(0)}`} cls="up"/>
+              <Kpi l="Cash"  v={`$${(M.cash/1000).toFixed(1)}k`}/>
+              <Kpi l="Gross" v={`${((M.longExp+M.shortExp)*100).toFixed(0)}%`}/>
+              <Kpi l="Sharpe (90d)" v={M.sharpe.toFixed(2)} cls="acc"/>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Win rate · 30d" bodyStyle={{ padding:"12px 16px 16px" }}>
+          <div style={{ display:"flex", alignItems:"flex-end", gap:8 }}>
+            <span className="mono up" style={{ fontSize:24, fontWeight:600 }}>67<span style={{ fontSize:14 }}>%</span></span>
+            <span className="mute" style={{ fontSize:11, marginBottom:5 }}>of 486 trades</span>
+          </div>
+          <div style={{ display:"flex", gap:2, marginTop:10 }}>
+            {Array.from({length:30}).map((_,i)=>{
+              const hit = [0,3,4,6,7,9,10,11,13,14,16,17,19,20,22,23,25,26,27,29].includes(i);
+              return <div key={i} style={{ flex:1, height:20, borderRadius:2, background: hit ? "var(--up)" : "var(--bg-3)" }}/>;
+            })}
+          </div>
+          <div style={{ display:"flex", justifyContent:"space-between", marginTop:5, fontSize:9.5 }} className="mute">
+            <span>30d ago</span><span>today</span>
+          </div>
+        </Card>
+
+        <Card title="Max drawdown" bodyStyle={{ padding:"12px 16px 16px" }}>
+          <div style={{ display:"flex", alignItems:"flex-end", gap:8 }}>
+            <span className="mono down" style={{ fontSize:24, fontWeight:600 }}>{M.drawdown}<span style={{ fontSize:14 }}>%</span></span>
+            <span className="mute" style={{ fontSize:11, marginBottom:5 }}>limit −10.0%</span>
+          </div>
+          <div className="bar" style={{ marginTop:14 }}>
+            <div className="bar-inner" style={{ width:"28%", background:"var(--down)" }}/>
+          </div>
+          <div className="mute" style={{ fontSize:10.5, marginTop:6 }}>2.8% of 10% limit used</div>
+        </Card>
+
+        <Card title="Market regime" bodyStyle={{ padding:"12px 16px 16px" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span className="pill acc" style={{ fontSize:10 }}>◆ {M.regime}</span>
+          </div>
+          <div className="mono" style={{ fontSize:17, fontWeight:500, marginTop:8 }}>Risk-on forming</div>
+          <div className="dim" style={{ fontSize:11, marginTop:4, lineHeight:1.45 }}>
+            Fed dovish on 2026 path · 2s/10s un-inverts · conf {M.regimeConf.toFixed(2)}
+          </div>
+        </Card>
+      </div>
+
+      {/* Chart + allocation + regime gauge */}
+      <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:14 }}>
+        <Card title="Equity curve" sub="last 90 days"
+          right={<div style={{ display:"flex", gap:4 }}>
+            {["1D","5D","1M","3M","YTD","1Y","ALL"].map((p,i)=>(
+              <button key={p} className={"btn " + (i===3?"active":"")}>{p}</button>
+            ))}
+          </div>}
+          bodyStyle={{ padding:"14px 12px 8px" }}>
+          <LineChart data={D.chartPts} h={200}/>
+        </Card>
+
+        <Card title="Allocation" sub="by sector" bodyStyle={{ padding:"10px 16px 14px" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <Donut slices={slices} size={120} inner={32}/>
+            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:4, fontSize:11 }}>
+              {slices.sort((a,b)=>b.v-a.v).map(s=>{
+                const tot = slices.reduce((x,y)=>x+y.v,0);
+                return (
+                  <div key={s.k} style={{ display:"flex", alignItems:"center", gap:6 }}>
+                    <span style={{ width:8, height:8, borderRadius:2, background:s.c }}/>
+                    <span style={{ flex:1, textTransform:"capitalize" }}>{s.k}</span>
+                    <span className="mono mute">{((s.v/tot)*100).toFixed(0)}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Market sentiment" sub="fear / greed" bodyStyle={{ padding:"12px 16px 14px" }}>
+          <div style={{ display:"flex", justifyContent:"center" }}>
+            <Gauge value={62} label="62 · Greed"/>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginTop:4, fontSize:10.5 }}>
+            <MiniStat l="VIX" v="14.8" d="−0.6" up/>
+            <MiniStat l="Put/Call" v="0.78" d="−0.04" up/>
+            <MiniStat l="Breadth" v="+126" d="adv" up/>
+            <MiniStat l="Hi/Lo" v="48/12" d="52wk"/>
+          </div>
+        </Card>
+      </div>
+
+      {/* Positions + Thesis */}
+      <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:14 }}>
+        <Card title="Holdings" sub={`${D.positions.length} positions`}
+              right={<><button className="btn">+ New trade</button></>}>
+          <div style={{ overflow:"auto", maxHeight:360 }}>
+            <table className="t">
+              <thead><tr>
+                <th></th><th>Ticker</th><th>Side</th>
+                <th className="num">Qty</th>
+                <th className="num">Avg</th>
+                <th className="num">Last</th>
+                <th className="num">Value</th>
+                <th className="num">P&L</th>
+                <th>Conf.</th>
+                <th>7d</th>
+                <th>Held</th>
+              </tr></thead>
+              <tbody>
+                {D.positions.map((p,i)=>{
+                  const tk = D.tickers.find(x=>x.t===p.t);
+                  const up = p.upnl>=0;
+                  const spark = Array.from({length:14},(_,j)=>p.avg + Math.sin((i+j)/2.2)*(p.avg*0.012) + (p.px-p.avg)*(j/13));
+                  return (
+                    <tr key={p.t}>
+                      <td><Swatch sect={tk?.sect}/></td>
+                      <td>
+                        <div style={{ display:"flex", flexDirection:"column" }}>
+                          <span className="tkr">{p.t}</span>
+                          <span className="mute" style={{ fontSize:10 }}>{tk?.n}</span>
+                        </div>
+                      </td>
+                      <td><span className={"pill " + (p.side==="LONG"?"up":"dn")}>{p.side==="LONG"?"Long":"Short"}</span></td>
+                      <td className="num">{p.qty}</td>
+                      <td className="num dim">{p.avg.toFixed(2)}</td>
+                      <td className="num">{p.px.toFixed(2)}</td>
+                      <td className="num">${p.mv.toLocaleString()}</td>
+                      <td className={"num " + (up?"up":"down")}>
+                        {up?"+":""}{p.upnl.toFixed(0)}
+                        <span className="mute" style={{ fontSize:9.5, marginLeft:5 }}>
+                          {up?"+":""}{p.upnlp.toFixed(2)}%
+                        </span>
+                      </td>
+                      <td><ConfBar v={p.conf}/></td>
+                      <td><Sparkline data={spark}/></td>
+                      <td className="mute" style={{ fontSize:11 }}>{p.held}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        <Card title="Why we're holding" sub="AI-authored">
+          <div style={{ padding:"10px 14px", display:"flex", flexDirection:"column", gap:10, fontSize:12, maxHeight:360, overflow:"auto" }}>
+            {D.positions.slice(0,4).map(p=>(
+              <div key={p.t} style={{ paddingBottom:10, borderBottom:"1px solid var(--line)" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:5 }}>
+                  <span className="tkr">{p.t}</span>
+                  <span className={"pill " + (p.side==="LONG"?"up":"dn")} style={{ fontSize:9 }}>
+                    {p.side==="LONG"?"Long":"Short"}
+                  </span>
+                  <span className="spacer" style={{ flex:1 }}/>
+                  <span className="mute mono" style={{ fontSize:10 }}>conf {p.conf.toFixed(2)}</span>
+                </div>
+                <div className="dim" style={{ fontSize:11.5, lineHeight:1.5 }}>{p.thesis}</div>
+              </div>
+            ))}
+            <button className="btn" style={{ alignSelf:"flex-start" }}>Explain all positions →</button>
+          </div>
+        </Card>
+      </div>
+
+      {/* News + Earnings + Blotter */}
+      <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr", gap:14 }}>
+        <Card title="Headlines" sub="tickers you hold">
+          <div style={{ maxHeight:260, overflow:"auto" }}>
+            <table className="t">
+              <tbody>
+                {D.news.map((n,i)=>(
+                  <tr key={i}>
+                    <td className="mute mono" style={{ width:46, fontSize:11 }}>{n.ts}</td>
+                    <td style={{ width:44 }}><span className="pill" style={{ fontSize:9 }}>{n.src}</span></td>
+                    <td><span className="tkr">{n.tk}</span></td>
+                    <td style={{ whiteSpace:"normal", lineHeight:1.45 }}>{n.h}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        <Card title="This week's earnings">
+          <table className="t">
+            <tbody>
+              {D.earnings.map((e,i)=>(
+                <tr key={i}>
+                  <td className="mute" style={{ fontSize:10.5 }}>{e.date}</td>
+                  <td><span className="tkr">{e.tk}</span></td>
+                  <td className="num mono">{e.eps}</td>
+                  <td>
+                    <span className={"pill " + (e.wh==="HIGH"?"acc":"")} style={{ fontSize:9 }}>
+                      {e.wh==="HIGH"?"High impact":"Med"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+
+        <Card title="Today's trades" sub="5 fills">
+          <div style={{ padding:"10px 14px", fontSize:11.5, display:"flex", flexDirection:"column", gap:7 }}>
+            {[
+              { t:"14:29", dir:"Buy", tk:"AVGO", sz:"40bp", c:0.88 },
+              { t:"13:47", dir:"Sell",tk:"TSLA", sz:"30bp", c:0.68 },
+              { t:"11:22", dir:"Buy", tk:"LLY",  sz:"20bp", c:0.91 },
+              { t:"10:08", dir:"Cover",tk:"XOM", sz:"10bp", c:0.71 },
+              { t:"09:34", dir:"Buy", tk:"NVDA", sz:"25bp", c:0.87 },
+            ].map((x,i)=>(
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <span className="mute mono" style={{ width:40, fontSize:10.5 }}>{x.t}</span>
+                <span className={"pill " + (x.dir==="Buy"?"up":x.dir==="Sell"?"dn":"acc")} style={{ fontSize:9, width:52, justifyContent:"center" }}>{x.dir}</span>
+                <span className="tkr" style={{ width:52 }}>{x.tk}</span>
+                <span className="mono mute" style={{ fontSize:10.5 }}>{x.sz}</span>
+                <span className="spacer" style={{ flex:1 }}/>
+                <span className="mono mute" style={{ fontSize:10 }}>{x.c.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function Kpi({ l, v, cls }) {
+  return (
+    <div>
+      <div className="mute" style={{ fontSize:10.5 }}>{l}</div>
+      <div className={"mono " + (cls||"")} style={{ fontSize:14, fontWeight:500, marginTop:2 }}>{v}</div>
+    </div>
+  );
+}
+function MiniStat({ l, v, d, up }) {
+  return (
+    <div>
+      <div className="mute" style={{ fontSize:10 }}>{l}</div>
+      <div style={{ display:"flex", alignItems:"baseline", gap:5 }}>
+        <span className="mono" style={{ fontSize:12, fontWeight:500 }}>{v}</span>
+        <span className={"mono " + (up?"up":"down")} style={{ fontSize:9.5 }}>{d}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Route: Signal Desk ─────────────────────────────────────────────── */
+function SignalDesk() {
+  return (
+    <div style={{ padding:16, display:"grid", gridTemplateColumns:"2.2fr 1fr", gap:14 }}>
+      <Card title="Ranked signals" sub={`${D.signals.length} candidates · min confidence 0.65`}
+            right={<><button className="btn active">All</button><button className="btn">Long</button><button className="btn">Short</button></>}>
+        <div>
+          <table className="t">
+            <thead><tr>
+              <th>#</th><th></th><th>Ticker</th><th>Direction</th><th>Action</th>
+              <th className="num">Score</th><th>Confidence</th><th className="num">Size</th>
+              <th>Evidence from</th><th>Age</th><th></th>
+            </tr></thead>
+            <tbody>
+              {D.signals.map((s,i)=>(
+                <tr key={s.t}>
+                  <td className="mute mono">{i+1}</td>
+                  <td><Swatch sect={s.sect}/></td>
+                  <td><span className="tkr">{s.t}</span></td>
+                  <td><span className={"pill " + (s.dir==="LONG"?"up":"dn")}>{s.dir==="LONG"?"Long":"Short"}</span></td>
+                  <td><span className="pill acc">{s.action.charAt(0)+s.action.slice(1).toLowerCase()}</span></td>
+                  <td className={"num " + (s.score>=0?"up":"down")} style={{ fontWeight:500 }}>
+                    {s.score>=0?"+":""}{s.score.toFixed(2)}
+                  </td>
+                  <td><ConfBar v={s.conf}/></td>
+                  <td className="num">{(s.pct*100).toFixed(1)}%</td>
+                  <td>
+                    {s.agents.map((a,j)=>(
+                      <span key={j} className="chip" style={{ marginRight:3, fontSize:9.5 }}>{a.toLowerCase()}</span>
+                    ))}
+                    {s.conflicts>0 && <span className="pill gold" style={{ fontSize:9 }}>⚠ {s.conflicts} conflict</span>}
+                  </td>
+                  <td className="mute" style={{ fontSize:11 }}>{s.age}</td>
+                  <td style={{ display:"flex", gap:3 }}>
+                    <button className="btn">Review</button>
+                    <button className="btn" style={{ background:"var(--up-bg)", color:"var(--up)", borderColor:"transparent" }}>✓</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* expanded top signal */}
+          <div style={{ padding:"18px 20px", background:"var(--bg-1)", borderTop:"1px solid var(--line)" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+              <span style={{
+                width:32, height:32, borderRadius:8,
+                background:"var(--accent-bg)", color:"var(--accent)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontFamily:"var(--mono)", fontWeight:600, fontSize:13
+              }}>A</span>
+              <div>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <span className="tkr" style={{ fontSize:15 }}>AVGO</span>
+                  <span className="pill up" style={{ fontSize:10 }}>Long</span>
+                  <span className="pill solid" style={{ fontSize:10 }}>Open 4.0% position</span>
+                </div>
+                <div className="mute" style={{ fontSize:11, marginTop:2 }}>Broadcom · composite +0.82 · confidence 0.88 · 4 min ago</div>
+              </div>
+              <span className="spacer" style={{ flex:1 }}/>
+              <button className="btn">Dismiss</button>
+              <button className="btn active">Approve trade</button>
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:20, marginTop:6 }}>
+              <div>
+                <div className="mute" style={{ fontSize:10.5, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:5 }}>Why</div>
+                <div style={{ fontSize:12.5, lineHeight:1.6, color:"var(--fg)" }}>
+                  Networking silicon leadership compounds as hyperscaler capex visibility extends through 2027.
+                  Custom ASIC wins at Meta and Google add an estimated $6–8B run-rate by FY26. VMware cross-sell
+                  is behind plan but unit economics are intact. Three agents align long on fundamentals, news
+                  flow, and macro regime — no material conflicts.
+                </div>
+              </div>
+              <div>
+                <div className="mute" style={{ fontSize:10.5, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:5 }}>Trade plan</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:7, fontSize:11.5 }}>
+                  <PlanRow l="Entry" v="$1,840 – $1,865"/>
+                  <PlanRow l="Stop"  v="$1,780" extra="(−3.5%)" cls="down"/>
+                  <PlanRow l="Target" v="$2,100" extra="(+12.6%)" cls="up"/>
+                  <PlanRow l="R:R" v="3.6" cls="acc"/>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+        <Card title="Signal quality · 30d">
+          <div style={{ padding:"12px 16px", display:"flex", flexDirection:"column", gap:8 }}>
+            <QRow l="Generated" v="142"/>
+            <QRow l="Approved by risk" v="84" sub="59%"/>
+            <QRow l="Executed" v="71" sub="50%"/>
+            <QRow l="5-day hit rate" v="67%" cls="up"/>
+            <QRow l="Avg confidence at entry" v="0.78"/>
+            <QRow l="Avg realized" v="+1.24%" cls="up"/>
+            <QRow l="Edge vs S&P 500" v="+18bp" cls="acc"/>
+          </div>
+        </Card>
+
+        <Card title="Evidence trail" sub="AVGO · today">
+          <div style={{ padding:"12px 16px", fontSize:11.5, lineHeight:1.55 }}>
+            <div style={{ paddingLeft:12, borderLeft:"2px solid var(--accent)" }}>
+              <Trail src="10-Q filing" ago="Jul 24" note="Networking rev $5.1B (+51%), backlog $29B"/>
+              <Trail src="News cluster" ago="72h window · 23 items" note="Custom silicon wins at 2 hyperscalers confirmed"/>
+              <Trail src="Macro regime" ago="risk-on transitioning" note="Tech tilt positive, semis favored under dovish path"/>
+              <Trail src="Aggregator" ago="opus-4.6 · 2.1s" note="Composite +0.82, no conflicts, size cleared sector cap"/>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function PlanRow({ l, v, extra, cls }) {
+  return (
+    <div style={{ display:"flex", justifyContent:"space-between", padding:"5px 10px", background:"var(--bg-2)", borderRadius:"var(--r-sm)" }}>
+      <span className="mute">{l}</span>
+      <span>
+        <span className={"mono " + (cls||"")}>{v}</span>
+        {extra && <span className={"mono " + (cls||"mute")} style={{ fontSize:10, marginLeft:5 }}>{extra}</span>}
+      </span>
+    </div>
+  );
+}
+function QRow({ l, v, sub, cls }) {
+  return (
+    <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
+      <span className="mute" style={{ fontSize:11, flex:1 }}>{l}</span>
+      <span className={"mono " + (cls||"")} style={{ fontSize:13, fontWeight:500 }}>{v}</span>
+      {sub && <span className="mute mono" style={{ fontSize:10 }}>{sub}</span>}
+    </div>
+  );
+}
+function Trail({ src, ago, note }) {
+  return (
+    <div style={{ marginBottom:10 }}>
+      <div><span className="acc" style={{ fontWeight:500 }}>{src}</span> <span className="mute" style={{ fontSize:10.5 }}>· {ago}</span></div>
+      <div className="dim" style={{ fontSize:11, marginTop:2 }}>→ {note}</div>
+    </div>
+  );
+}
+
+/* ─── Route: Agent Swarm ─────────────────────────────────────────────── */
+function AgentSwarm() {
+  const [filter, setFilter] = React.useState("ALL");
+  const filters = ["ALL","FILING","EARN","SENT","MACRO","AGGR","RISK"];
+  const stream = filter==="ALL" ? D.agentStream : D.agentStream.filter(s=>s.ag===filter);
+  return (
+    <div style={{ padding:16, display:"grid", gridTemplateColumns:"280px 1fr 320px", gap:14 }}>
+      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+        <Card title="Agents" sub="5 running">
+          <div>
+            {D.agentPerf.map((a,i)=>(
+              <div key={a.ag} onClick={()=>setFilter(a.ag)} style={{
+                padding:"12px 14px",
+                borderBottom: i<D.agentPerf.length-1 ? "1px solid var(--line)" : "none",
+                cursor:"pointer",
+                background: filter===a.ag ? "var(--accent-bg)" : "transparent"
+              }}>
+                <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+                  <span className="dot live" style={{ width:7, height:7 }}/>
+                  <span style={{ fontWeight:500, textTransform:"capitalize" }}>{a.ag.toLowerCase()}</span>
+                  <span className="spacer" style={{ flex:1 }}/>
+                  <span className="chip">{a.model}</span>
+                </div>
+                <div style={{ display:"flex", gap:12, marginTop:6, fontSize:11 }} className="mute">
+                  <span>n={a.n}</span>
+                  <span>hit <span className="mono up">{(a.hit*100).toFixed(0)}%</span></span>
+                  <span>SR <span className="mono" style={{color:"var(--fg)"}}>{a.sharpe.toFixed(2)}</span></span>
+                </div>
+                <div className="bar" style={{ marginTop:6 }}>
+                  <div className="bar-inner" style={{ width:`${a.avgConf*100}%` }}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card title="Freshness" sub="confidence vs staleness">
+          <div style={{ padding:"10px 14px", fontSize:11 }}>
+            {[
+              { t:"NVDA", age:"4 min",  c:0.92, f:1.00 },
+              { t:"META", age:"1 hr",   c:0.74, f:0.82 },
+              { t:"PFE",  age:"2 hr",   c:0.69, f:0.68 },
+              { t:"CVX",  age:"5 hr",   c:0.66, f:0.31 },
+              { t:"AAPL", age:"19 hr",  c:0.58, f:0.08 },
+            ].map(r=>(
+              <div key={r.t} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7 }}>
+                <span className="tkr" style={{ width:44 }}>{r.t}</span>
+                <span className="mute mono" style={{ width:46, fontSize:10 }}>{r.age}</span>
+                <div className="bar" style={{ flex:1 }}>
+                  <div className="bar-inner" style={{
+                    width:`${r.f*100}%`,
+                    background: r.f>0.5?"var(--up)":r.f>0.2?"var(--gold)":"var(--down)"
+                  }}/>
+                </div>
+                <span className="mono" style={{ width:32, fontSize:10.5, textAlign:"right" }}>{r.c.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <Card title={`Reasoning stream · ${filter.toLowerCase()}`} sub={`${stream.length} events`}
+            right={<div style={{ display:"flex", gap:3 }}>
+              {filters.map(f=>(
+                <button key={f} onClick={()=>setFilter(f)} className={"btn " + (filter===f?"active":"")} style={{ fontSize:10 }}>{f.toLowerCase()}</button>
+              ))}
+            </div>}>
+        <div style={{ maxHeight:640, overflow:"auto" }}>
+          {stream.map((e,i)=>(
+            <div key={i} style={{
+              padding:"12px 16px",
+              borderBottom: i<stream.length-1 ? "1px solid var(--line)" : "none",
+              display:"grid", gridTemplateColumns:"64px 80px 54px 16px 1fr 70px",
+              gap:10, alignItems:"start", fontSize:12
+            }}>
+              <span className="mute mono" style={{ fontSize:10.5 }}>{e.ts}</span>
+              <span className="pill acc" style={{ fontSize:9.5, alignSelf:"start" }}>{e.ag.toLowerCase()}</span>
+              <span className="tkr">{e.tk}</span>
+              <span className={e.sig==="+"?"up":e.sig==="-"?"down":"acc"} style={{ fontWeight:700 }}>{e.sig}</span>
+              <span style={{ lineHeight:1.55, color:"var(--fg)" }}>{e.msg}</span>
+              <span><ConfBar v={e.conf} w={42}/></span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+        <Card title="Conflict detected" sub="META">
+          <div style={{ padding:"12px 14px" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+              <div style={{ border:"1px solid var(--line-2)", padding:10, borderRadius:"var(--r-sm)" }}>
+                <div className="mute" style={{ fontSize:10, textTransform:"uppercase", letterSpacing:"0.06em" }}>Sentiment</div>
+                <div className="mono down" style={{ fontSize:20, fontWeight:600, marginTop:2 }}>−0.60</div>
+                <div className="dim" style={{ fontSize:10.5, marginTop:4, lineHeight:1.45 }}>FTC probe · Reality Labs burn · ad pricing softness</div>
+              </div>
+              <div style={{ border:"1px solid var(--line-2)", padding:10, borderRadius:"var(--r-sm)" }}>
+                <div className="mute" style={{ fontSize:10, textTransform:"uppercase", letterSpacing:"0.06em" }}>Earnings</div>
+                <div className="mono up" style={{ fontSize:20, fontWeight:600, marginTop:2 }}>+0.20</div>
+                <div className="dim" style={{ fontSize:10.5, marginTop:4, lineHeight:1.45 }}>DAU +4%, ARPU steady, 2026 capex in-line</div>
+              </div>
+            </div>
+            <div style={{ marginTop:10, padding:10, border:"1px solid var(--accent)", background:"var(--accent-bg)", borderRadius:"var(--r-sm)", fontSize:11.5, lineHeight:1.5 }}>
+              <div className="acc" style={{ fontWeight:600, fontSize:10.5, textTransform:"uppercase", letterSpacing:"0.06em" }}>Resolution</div>
+              <div style={{ marginTop:3 }}>Sentiment weighted higher (recency + material event count). Composite <span className="mono down">−0.64</span>, confidence <span className="mono">0.74</span>.</div>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Token usage · 24h"
+              right={<span className="mono acc" style={{ fontSize:13, fontWeight:500 }}>$387</span>}>
+          <div style={{ padding:"10px 14px", display:"flex", flexDirection:"column", gap:10, fontSize:11 }}>
+            {[
+              { ag:"Filing (opus)",   t:"12.4M", cost:"$186", c:"var(--s-tech)", v:0.82 },
+              { ag:"Aggregator (opus)",t:"8.1M", cost:"$121", c:"var(--s-fin)",  v:0.54 },
+              { ag:"Earnings (opus)", t:"3.2M",  cost:"$48",  c:"var(--s-hlth)", v:0.21 },
+              { ag:"Sentiment (sonnet)",t:"9.8M",cost:"$29",  c:"var(--s-cons)", v:0.65 },
+              { ag:"Macro (sonnet)",  t:"0.8M",  cost:"$3",   c:"var(--s-def)",  v:0.05 },
+            ].map((r,i)=>(
+              <div key={i}>
+                <div style={{ display:"flex" }}>
+                  <span style={{ flex:1 }}>{r.ag}</span>
+                  <span className="mono mute">{r.t}</span>
+                  <span className="mono" style={{ marginLeft:10, width:44, textAlign:"right" }}>{r.cost}</span>
+                </div>
+                <div className="bar" style={{ marginTop:4 }}>
+                  <div className="bar-inner" style={{ width:`${r.v*100}%`, background:r.c }}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Route: Risk Radar ──────────────────────────────────────────────── */
+function RiskRadar() {
+  const tickers = D.positions.map(p=>p.t);
+  const corr = (i,j) => { if (i===j) return 1; const s=(i*7+j*13+5)%100; return Math.round(((s/100)*1.4-0.4)*100)/100; };
+
+  const [spx,setSpx] = React.useState(-10);
+  const [rate,setRate] = React.useState(50);
+  const [dxy,setDxy] = React.useState(2);
+  const beta = { NVDA:1.8, AAPL:1.2, JPM:1.1, XOM:0.7, LLY:0.8, TSLA:2.1, GS:1.4 };
+  const stress = D.positions.map(p => {
+    const b = beta[p.t]||1, sg = p.side==="LONG"?1:-1;
+    const eq = sg*p.mv*b*(spx/100);
+    const rt = sg*p.mv*(b-1)*0.4*(rate/100);
+    const fx = sg*p.mv*0.3*(dxy/100)*-1;
+    return { ...p, b, eq, rt, fx, tot: eq+rt+fx };
+  });
+  const total = stress.reduce((s,r)=>s+r.tot,0);
+
+  return (
+    <div style={{ padding:16, display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+      <Card title="Correlation" sub="7 positions · 90d daily returns">
+        <div style={{ padding:"14px 18px", overflow:"auto" }}>
+          <table style={{ borderCollapse:"separate", borderSpacing:2, fontFamily:"var(--mono)", fontSize:10.5 }}>
+            <thead><tr>
+              <th></th>
+              {tickers.map(t=><th key={t} style={{ padding:4, color:"var(--fg-mute)", fontWeight:500 }}>{t}</th>)}
+            </tr></thead>
+            <tbody>
+              {tickers.map((r,i)=>(
+                <tr key={r}>
+                  <th style={{ padding:"4px 8px", textAlign:"left", color:"var(--fg)", fontWeight:500 }}>{r}</th>
+                  {tickers.map((c,j)=>{
+                    const v = corr(i,j), a=Math.abs(v);
+                    const bg = v>=0 ? `rgba(52,211,153,${a.toFixed(2)})` : `rgba(248,113,113,${a.toFixed(2)})`;
+                    return <td key={c} style={{
+                      width:48, height:28, textAlign:"center",
+                      background:bg, borderRadius:"var(--r-xs)",
+                      color: a>0.5?"#0c0f14":"var(--fg)"
+                    }}>{v.toFixed(2)}</td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ marginTop:14, fontSize:11, lineHeight:1.55, color:"var(--fg-dim)" }}>
+            <div className="acc" style={{ fontWeight:600, fontSize:10.5, textTransform:"uppercase", letterSpacing:"0.06em" }}>Clusters detected</div>
+            <div style={{ marginTop:4 }}>• Tech pair (NVDA/AAPL) ρ 0.62 — within 0.7 limit</div>
+            <div>• Financials (JPM/GS) ρ 0.68 — consider trimming one</div>
+            <div>• XOM short / LLY long ρ −0.24 — effective hedge</div>
+          </div>
+        </div>
+      </Card>
+
+      <Card title="What if…" sub="stress simulator"
+            right={<span className={"mono " + (total>=0?"up":"down")} style={{ fontSize:16, fontWeight:600 }}>
+              {total>=0?"+":""}${Math.round(total).toLocaleString()}
+            </span>}>
+        <div style={{ padding:"14px 18px" }}>
+          <Slider l="S&P 500 shock"    v={spx}  set={setSpx}  min={-25} max={25} unit="%"/>
+          <Slider l="10-year yield"    v={rate} set={setRate} min={-200} max={200} unit=" bp"/>
+          <Slider l="Dollar index"     v={dxy}  set={setDxy}  min={-10} max={10}  unit="%"/>
+
+          <div style={{ marginTop:12, maxHeight:240, overflow:"auto" }}>
+            <table className="t">
+              <thead><tr>
+                <th>Ticker</th><th className="num">β</th>
+                <th className="num">Equity</th><th className="num">Rate</th><th className="num">FX</th>
+                <th className="num">Total</th>
+              </tr></thead>
+              <tbody>
+                {stress.map(r=>(
+                  <tr key={r.t}>
+                    <td><span className="tkr">{r.t}</span></td>
+                    <td className="num dim">{r.b.toFixed(2)}</td>
+                    <td className={"num " + (r.eq>=0?"up":"down")}>{r.eq>=0?"+":""}{r.eq.toFixed(0)}</td>
+                    <td className={"num " + (r.rt>=0?"up":"down")}>{r.rt>=0?"+":""}{r.rt.toFixed(0)}</td>
+                    <td className={"num " + (r.fx>=0?"up":"down")}>{r.fx>=0?"+":""}{r.fx.toFixed(0)}</td>
+                    <td className={"num " + (r.tot>=0?"up":"down")} style={{ fontWeight:600 }}>
+                      {r.tot>=0?"+":""}{r.tot.toFixed(0)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ marginTop:12, padding:12, border:"1px solid var(--accent)", background:"var(--accent-bg)", borderRadius:"var(--r-sm)", fontSize:11.5, lineHeight:1.5 }}>
+            <div className="acc" style={{ fontWeight:600, fontSize:10.5, textTransform:"uppercase", letterSpacing:"0.06em" }}>Portfolio impact</div>
+            <div style={{ marginTop:3 }}>
+              Under simultaneous S&P {spx}%, 10-year {rate>=0?"+":""}{rate}bp, and dollar {dxy>=0?"+":""}{dxy}%, the portfolio would
+              change by <span className={"mono " + (total>=0?"up":"down")}>
+              {total>=0?"+":""}${Math.round(total).toLocaleString()}</span> — {Math.abs((total/M.portVal)*100).toFixed(1)}% of NAV.
+              Your XOM and TSLA shorts are the largest offsets.
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card title="Exposure limits" sub="live">
+        <div style={{ padding:"12px 18px" }}>
+          {[
+            { l:"Gross exposure",    v:0.70, max:1.50 },
+            { l:"Net exposure",      v:0.46, max:1.00 },
+            { l:"Sector · tech",     v:0.47, max:0.50 },
+            { l:"Sector · financials",v:0.14,max:0.25 },
+            { l:"Single name max",   v:0.050,max:0.050 },
+            { l:"Daily drawdown",    v:0.028,max:0.100 },
+            { l:"VaR 95% · 1d",      v:0.016,max:0.030 },
+          ].map(r=>{
+            const p = r.v/r.max;
+            const col = p<0.6?"var(--up)":p<0.9?"var(--gold)":"var(--down)";
+            return (
+              <div key={r.l} style={{ padding:"8px 0", borderBottom:"1px solid var(--line)" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10, fontSize:11.5 }}>
+                  <span style={{ flex:1 }}>{r.l}</span>
+                  <span className="mono mute">{(r.v*100).toFixed(1)}% / {(r.max*100).toFixed(1)}%</span>
+                </div>
+                <div className="bar" style={{ marginTop:6 }}>
+                  <div className="bar-inner" style={{ width:`${Math.min(100,p*100)}%`, background:col }}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Card title="Historical scenarios" sub="click apply to replay">
+        <table className="t">
+          <thead><tr>
+            <th>Scenario</th><th>Date</th>
+            <th className="num">S&P</th><th className="num">10y</th>
+            <th className="num">Est P&L</th><th></th>
+          </tr></thead>
+          <tbody>
+            {[
+              ["COVID crash",       "Mar 12 '20", "−9.5%", "−42bp", -22140],
+              ["CPI shock",         "Sep 13 '22", "−4.3%", "+34bp", -9420],
+              ["SVB weekend",       "Mar 10 '23", "−1.8%", "−28bp", -3880],
+              ["Yen carry unwind",  "Aug 5 '24",  "−3.0%", "−12bp", -6240],
+              ["Tariff sell-off",   "Apr 3 '25",  "−4.8%", "−18bp", -10820],
+            ].map((r,i)=>(
+              <tr key={i}>
+                <td style={{ fontWeight:500 }}>{r[0]}</td>
+                <td className="mute">{r[1]}</td>
+                <td className="num down">{r[2]}</td>
+                <td className="num">{r[3]}</td>
+                <td className="num down">−${Math.abs(r[4]).toLocaleString()}</td>
+                <td><button className="btn">Apply</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+function Slider({ l, v, set, min, max, unit }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <div style={{ display:"flex", alignItems:"center", marginBottom:4 }}>
+        <span style={{ flex:1, fontSize:11.5 }}>{l}</span>
+        <span className={"mono " + (v>=0?"up":"down")} style={{ fontSize:13, fontWeight:500 }}>
+          {v>=0?"+":""}{v}{unit}
+        </span>
+      </div>
+      <input type="range" min={min} max={max} value={v} onChange={e=>set(parseInt(e.target.value))}
+        style={{ width:"100%", accentColor:"#8b5cf6" }}/>
+    </div>
+  );
+}
+
+/* ─── Route: Research ────────────────────────────────────────────────── */
+function Research() {
+  return (
+    <div style={{ padding:16, display:"grid", gridTemplateColumns:"230px 1fr 320px", gap:14 }}>
+      <Card title="Research · NVDA">
+        <div style={{ padding:"8px 0" }}>
+          {[
+            { k:"Overview", a:true },
+            { k:"10-Q filing diff", tag:"New" },
+            { k:"Earnings call" },
+            { k:"News cluster" },
+            { k:"Peer comparison" },
+            { k:"Options flow" },
+            { k:"Insider transactions" },
+            { k:"Short interest" },
+          ].map((n,i)=>(
+            <div key={n.k} style={{
+              padding:"8px 16px",
+              borderLeft: n.a ? "2px solid var(--accent)" : "2px solid transparent",
+              background: n.a ? "var(--accent-bg)" : "transparent",
+              color: n.a ? "var(--accent-hi)" : "var(--fg-dim)",
+              cursor:"pointer",
+              fontSize:12,
+              display:"flex", alignItems:"center", gap:6
+            }}>
+              <span style={{ flex:1 }}>{n.k}</span>
+              {n.tag && <span className="pill acc" style={{ fontSize:9 }}>{n.tag}</span>}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card title="10-Q diff · NVDA" sub="Q3 FY26 vs Q2 FY26" chips={["AI-annotated","SEC EDGAR"]}>
+        <div style={{ padding:"14px 18px", fontSize:12, lineHeight:1.55 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
+            <KpiDiff l="Revenue"    p="$30.0B" c="$35.1B" d="+17.0%" up/>
+            <KpiDiff l="Data center" p="$26.3B" c="$30.8B" d="+17.1%" up/>
+            <KpiDiff l="Gross margin" p="75.0%" c="75.5%" d="+50 bp"  up/>
+            <KpiDiff l="Op margin"  p="62.0%" c="62.4%" d="+40 bp"  up/>
+            <KpiDiff l="Inventory"  p="$10.1B" c="$14.2B" d="+40.6%" flat/>
+            <KpiDiff l="R&D"        p="$3.4B"  c="$3.8B"  d="+11.8%" flat/>
+          </div>
+
+          <div className="acc" style={{ fontSize:10.5, textTransform:"uppercase", letterSpacing:"0.08em", fontWeight:600, marginBottom:8 }}>Material changes · 7</div>
+          {[
+            { s:"+", t:"Data center margin expanded 60 bp QoQ on Blackwell ramp mix.", e:"p.42 · MD&A" },
+            { s:"+", t:"Sovereign AI backlog disclosed at ~$8B (new).", e:"p.47" },
+            { s:"~", t:"Inventory +41% QoQ — management framed as GB200 pre-positioning.", e:"p.19" },
+            { s:"-", t:"China restricted revenue now 8% of data center (was 12%).", e:"p.44" },
+            { s:"+", t:"Guidance floor raised $1.5B vs consensus midpoint.", e:"p.51" },
+            { s:"~", t:"Stock-based comp steady at 10.8% of revenue — dilution ongoing.", e:"p.23" },
+            { s:"-", t:"New risk factor: top-4 customers now 46% of revenue (concentration).", e:"p.58" },
+          ].map((d,i)=>(
+            <div key={i} style={{
+              display:"grid", gridTemplateColumns:"20px 1fr 120px", gap:10,
+              padding:"8px 0", borderBottom:"1px solid var(--line)"
+            }}>
+              <span className={d.s==="+"?"up":d.s==="-"?"down":"acc"} style={{ fontWeight:700 }}>{d.s}</span>
+              <span>{d.t}</span>
+              <span className="mute mono" style={{ fontSize:10 }}>{d.e}</span>
+            </div>
+          ))}
+
+          <div style={{ marginTop:16, padding:14, background:"var(--bg-1)", border:"1px solid var(--line-2)", borderRadius:"var(--r-sm)" }}>
+            <div className="acc" style={{ fontWeight:600, fontSize:10.5, textTransform:"uppercase", letterSpacing:"0.06em" }}>Claude summary · opus-4.6</div>
+            <div style={{ marginTop:6, lineHeight:1.6 }}>
+              This quarter extends the "data-center super-cycle" narrative with a higher-quality print:
+              margin expansion, demonstrably larger backlog, and a guidance raise that outpaces consensus.
+              Two quality flags — inventory build and customer concentration — warrant watching, but both
+              have coherent management explanations. Recommendation: <span className="acc" style={{ fontWeight:600 }}>Buy / add</span> at 3–5%
+              position size, confidence <span className="mono">0.92</span>.
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card title="Peer snapshot">
+        <table className="t">
+          <thead><tr>
+            <th>Ticker</th><th className="num">P/E</th><th className="num">Growth</th><th className="num">GM</th><th>YTD</th>
+          </tr></thead>
+          <tbody>
+            {[
+              ["NVDA","48.2","+112%","75.5%","+42%",true],
+              ["AMD", "32.8","+38%", "51.2%","+18%",true],
+              ["AVGO","42.1","+47%", "63.4%","+35%",true],
+              ["INTC","—",   "−6%",  "32.1%","−22%",false],
+              ["MRVL","38.6","+29%", "48.2%","+11%",true],
+              ["TSM", "24.4","+31%", "53.1%","+28%",true],
+            ].map(r=>(
+              <tr key={r[0]}>
+                <td><span className="tkr">{r[0]}</span></td>
+                <td className="num">{r[1]}</td>
+                <td className={"num " + (r[4].startsWith("+")?"up":"down")}>{r[2]}</td>
+                <td className="num">{r[3]}</td>
+                <td>
+                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                    <span className={"mono " + (r[4].startsWith("+")?"up":"down")} style={{ fontSize:11 }}>{r[4]}</span>
+                    <Sparkline data={Array.from({length:14},(_,i)=>r[5]?i+Math.sin(i/2)*2:20-i-Math.sin(i/2)*2)} w={40} h={14}/>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div style={{ padding:"14px 18px", borderTop:"1px solid var(--line)" }}>
+          <div className="acc" style={{ fontSize:10.5, textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:600, marginBottom:8 }}>Options flow · 24h</div>
+          <div style={{ fontSize:11.5, display:"flex", flexDirection:"column", gap:6 }}>
+            <FlowRow c="920 C 05/23" d="Bot 4,820" sz="$12.4M" up/>
+            <FlowRow c="880 P 05/16" d="Bot 1,140" sz="$2.1M" down/>
+            <FlowRow c="950 C 06/20" d="Bot 3,200" sz="$8.8M" up/>
+          </div>
+          <div className="mute" style={{ fontSize:10.5, marginTop:8 }}>Put/Call 0.43 · IV30 44.2 (+2.1)</div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+function FlowRow({ c, d, sz, up, down }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+      <span className="mono" style={{ flex:1 }}>NVDA {c}</span>
+      <span className={up?"up":"down"} style={{ fontSize:11, fontWeight:500 }}>{d}</span>
+      <span className="mute mono" style={{ fontSize:10.5 }}>{sz}</span>
+    </div>
+  );
+}
+function KpiDiff({ l, p, c, d, up, flat }) {
+  return (
+    <div style={{ border:"1px solid var(--line)", borderRadius:"var(--r-sm)", padding:"10px 12px" }}>
+      <div className="mute" style={{ fontSize:10.5 }}>{l}</div>
+      <div style={{ display:"flex", alignItems:"baseline", gap:6, marginTop:3 }}>
+        <span className="mute mono" style={{ fontSize:11 }}>{p}</span>
+        <span className="mute" style={{ fontSize:10 }}>→</span>
+        <span className="mono" style={{ fontSize:15, fontWeight:500 }}>{c}</span>
+      </div>
+      <div className={"mono " + (up?"up":flat?"acc":"down")} style={{ fontSize:11, marginTop:2 }}>{d}</div>
+    </div>
+  );
+}
+
+/* ─── Route: Blotter ─────────────────────────────────────────────────── */
+function Blotter() {
+  const rows = [
+    { id:"#2847", ts:"14:29", tk:"AVGO", dir:"Buy",   qty:4, px:1846.20, n:7384.80, st:"Filled", c:0.88, lat:"124 ms" },
+    { id:"#2846", ts:"13:47", tk:"TSLA", dir:"Sell",  qty:12,px:348.55,  n:4182.60, st:"Filled", c:0.68, lat:"98 ms" },
+    { id:"#2845", ts:"11:22", tk:"LLY",  dir:"Buy",   qty:3, px:826.10,  n:2478.30, st:"Filled", c:0.91, lat:"156 ms" },
+    { id:"#2844", ts:"10:08", tk:"XOM",  dir:"Cover", qty:10,px:115.80,  n:1158.00, st:"Partial",c:0.71, lat:"212 ms" },
+    { id:"#2843", ts:"09:34", tk:"NVDA", dir:"Buy",   qty:5, px:889.40,  n:4447.00, st:"Filled", c:0.87, lat:"88 ms" },
+    { id:"#2842", ts:"09:31", tk:"GS",   dir:"Buy",   qty:2, px:610.50,  n:1221.00, st:"Rejected",c:0.64,lat:"44 ms", rsn:"confidence below threshold" },
+  ];
+  return (
+    <div style={{ padding:16, display:"grid", gridTemplateColumns:"1fr 320px", gap:14 }}>
+      <Card title="Blotter" sub="paper account · Alpaca"
+            right={<><button className="btn active">All</button><button className="btn">Filled</button><button className="btn">Pending</button></>}>
+        <table className="t">
+          <thead><tr>
+            <th>Order</th><th>Time</th><th>Ticker</th><th>Side</th>
+            <th className="num">Qty</th><th className="num">Price</th>
+            <th className="num">Notional</th><th>Status</th><th>Conf.</th><th>Latency</th>
+          </tr></thead>
+          <tbody>
+            {rows.map(r=>(
+              <tr key={r.id}>
+                <td className="mute mono">{r.id}</td>
+                <td className="mute">{r.ts}</td>
+                <td><span className="tkr">{r.tk}</span></td>
+                <td><span className={"pill " + (r.dir==="Buy"?"up":r.dir==="Sell"?"dn":"acc")}>{r.dir}</span></td>
+                <td className="num">{r.qty}</td>
+                <td className="num">{r.px.toFixed(2)}</td>
+                <td className="num">${r.n.toLocaleString()}</td>
+                <td>
+                  <span className={"pill " + (r.st==="Filled"?"up":r.st==="Rejected"?"dn":"gold")}>{r.st}</span>
+                  {r.rsn && <div className="mute" style={{ fontSize:10, marginTop:3 }}>{r.rsn}</div>}
+                </td>
+                <td><ConfBar v={r.c}/></td>
+                <td className="mute mono" style={{ fontSize:11 }}>{r.lat}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+        <Card title="Execution health · 24h">
+          <div style={{ padding:"14px 18px", display:"flex", flexDirection:"column", gap:10, fontSize:12 }}>
+            <QRow l="Orders" v="47"/>
+            <QRow l="Fill rate" v="95.7%" cls="up"/>
+            <QRow l="Avg latency" v="126 ms"/>
+            <QRow l="Avg slippage" v="1.8 bp"/>
+            <QRow l="Rejected" v="2" sub="risk gate"/>
+          </div>
+        </Card>
+
+        <Card title="Manual entry">
+          <div style={{ padding:"14px 18px", display:"flex", flexDirection:"column", gap:10, fontSize:11.5 }}>
+            <OrderField l="Symbol" v="NVDA"/>
+            <OrderField l="Side" v="Buy" pill="up"/>
+            <OrderField l="Qty" v="10"/>
+            <OrderField l="Type" v="Limit @ 892.00"/>
+
+            <div style={{ padding:10, background:"var(--bg-2)", borderRadius:"var(--r-sm)" }}>
+              <div style={{ display:"flex", fontSize:11 }}>
+                <span className="mute" style={{ flex:1 }}>Notional</span>
+                <span className="mono">$8,920.00</span>
+              </div>
+              <div style={{ display:"flex", fontSize:11, marginTop:3 }}>
+                <span className="mute" style={{ flex:1 }}>Risk check</span>
+                <span className="mono up">Pass</span>
+              </div>
+            </div>
+
+            <button className="btn active" style={{ padding:"8px" }}>Submit order</button>
+            <div className="mute" style={{ fontSize:10, textAlign:"center" }}>Paper account · no real capital at risk</div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+function OrderField({ l, v, pill }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", background:"var(--bg-2)", borderRadius:"var(--r-sm)" }}>
+      <span className="mute" style={{ fontSize:10.5, width:54, textTransform:"uppercase", letterSpacing:"0.04em" }}>{l}</span>
+      {pill
+        ? <span className={"pill " + pill} style={{ fontSize:10 }}>{v}</span>
+        : <span className="mono" style={{ fontWeight:500 }}>{v}</span>
+      }
+    </div>
+  );
+}
+
+/* ─── Route: Alerts ──────────────────────────────────────────────────── */
+function Alerts() {
+  const alerts = [
+    { ts:"14:32", sev:"HI",  tk:"NVDA", msg:"Filing agent confidence spiked to 0.92 on 10-Q print", act:"Review" },
+    { ts:"14:28", sev:"MED", tk:"META", msg:"Agent disagreement: sentiment vs earnings on composite", act:"Resolve" },
+    { ts:"14:14", sev:"HI",  tk:"LLY",  msg:"8-K: Zepbound label expansion — thesis reinforced", act:"View" },
+    { ts:"13:54", sev:"LOW", tk:"JPM",  msg:"Headline flagged: Dimon on CRE. No action recommended", act:"Dismiss" },
+    { ts:"12:18", sev:"MED", tk:"TSLA", msg:"Short thesis strengthened: 3 sell-side delivery cuts", act:"View" },
+    { ts:"11:02", sev:"HI",  tk:"—",    msg:"Tech exposure 47% — approaching 50% cap; new longs throttled", act:"Acknowledge" },
+    { ts:"09:44", sev:"LOW", tk:"XOM",  msg:"Stop-loss proximity 1.8%; position healthy", act:"Dismiss" },
+  ];
+  return (
+    <div style={{ padding:16, display:"grid", gridTemplateColumns:"1fr 340px", gap:14 }}>
+      <Card title="Inbox" sub="7 active · 3 today">
+        <table className="t">
+          <thead><tr><th>Priority</th><th>Time</th><th>Ticker</th><th>Message</th><th></th></tr></thead>
+          <tbody>
+            {alerts.map((a,i)=>(
+              <tr key={i}>
+                <td><span className={"pill " + (a.sev==="HI"?"dn":a.sev==="MED"?"gold":"")} style={{ minWidth:46, justifyContent:"center" }}>
+                  {a.sev==="HI"?"High":a.sev==="MED"?"Medium":"Low"}
+                </span></td>
+                <td className="mute">{a.ts}</td>
+                <td><span className="tkr">{a.tk}</span></td>
+                <td style={{ whiteSpace:"normal" }}>{a.msg}</td>
+                <td><button className="btn">{a.act}</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      <Card title="Watchlist" sub={`${D.tickers.length} tickers`}>
+        <div style={{ maxHeight:560, overflow:"auto" }}>
+          <table className="t">
+            <thead><tr><th></th><th>Ticker</th><th className="num">Last</th><th className="num">Chg%</th><th>7d</th></tr></thead>
+            <tbody>
+              {D.tickers.map((t)=>(
+                <tr key={t.t}>
+                  <td><Swatch sect={t.sect}/></td>
+                  <td><span className="tkr">{t.t}</span></td>
+                  <td className="num">{t.px.toFixed(2)}</td>
+                  <td className={"num " + (t.chgp>=0?"up":"down")}>{t.chgp>=0?"+":""}{t.chgp.toFixed(2)}%</td>
+                  <td><Sparkline data={Array.from({length:14},(_,i)=>t.px + Math.sin((i+t.t.length)/2)*t.px*0.015 + t.chg*(i/13))} w={48}/></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/* ─── App ────────────────────────────────────────────────────────────── */
+function App() {
+  const [route, setRoute] = React.useState(() => localStorage.getItem("daub:route2") || "home");
+  const [search, setSearch] = React.useState("");
+  const [tweaks, setTweaks] = React.useState(TWEAKS);
+  const [tweaksOn, setTweaksOn] = React.useState(false);
+  const [clock, setClock] = React.useState("14:32:17 ET");
+
+  React.useEffect(() => { localStorage.setItem("daub:route2", route); }, [route]);
+
+  React.useEffect(() => {
+    let s = 37;
+    const id = setInterval(() => {
+      s += 1;
+      const h=14, m=32+Math.floor(s/60), sec=s%60;
+      setClock(`${h}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")} ET`);
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  React.useEffect(() => {
+    const c = ACCENT_MAP[tweaks.accent] || ACCENT_MAP.indigo;
+    Object.entries(c).forEach(([k,v]) => document.documentElement.style.setProperty(k,v));
+  }, [tweaks]);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      if (e.data?.type === "__activate_edit_mode") setTweaksOn(true);
+      if (e.data?.type === "__deactivate_edit_mode") setTweaksOn(false);
+    };
+    window.addEventListener("message", onMsg);
+    window.parent.postMessage({ type:"__edit_mode_available" }, "*");
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
+  const setTweak = (k,v) => {
+    const next = { ...tweaks, [k]:v };
+    setTweaks(next);
+    window.parent.postMessage({ type:"__edit_mode_set_keys", edits:{ [k]:v } }, "*");
+  };
+
+  const routeNames = {
+    home:"Dashboard", signal:"Signal Desk", agents:"Agent Swarm",
+    rsrch:"Research", risk:"Risk Radar", screen:"Screener",
+    exec:"Blotter", alerts:"Alerts"
+  };
+
+  return (
+    <div style={{ display:"flex", height:"100vh", background:"var(--bg)" }} data-screen-label={routeNames[route]}>
+      <Sidebar route={route} setRoute={setRoute}/>
+      <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0 }}>
+        <TopBar search={search} setSearch={setSearch} clock={clock}/>
+        <div style={{ flex:1, overflow:"auto" }}>
+          {route==="home"   && <Dashboard/>}
+          {route==="signal" && <SignalDesk/>}
+          {route==="agents" && <AgentSwarm/>}
+          {route==="rsrch"  && <Research/>}
+          {route==="risk"   && <RiskRadar/>}
+          {route==="screen" && <Screener/>}
+          {route==="exec"   && <Blotter/>}
+          {route==="alerts" && <Alerts/>}
+        </div>
+      </div>
+
+      {tweaksOn && (
+        <div className="card" style={{ position:"fixed", right:20, bottom:20, width:260, zIndex:50, boxShadow:"0 10px 40px rgba(0,0,0,0.6)" }}>
+          <div className="card-head"><h3>Tweaks</h3></div>
+          <div style={{ padding:"14px 16px", display:"flex", flexDirection:"column", gap:12 }}>
+            <div>
+              <div className="mute" style={{ fontSize:10.5, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:6 }}>Accent</div>
+              <div style={{ display:"flex", gap:4 }}>
+                {["indigo","teal","lime","rose"].map(c=>(
+                  <button key={c} onClick={()=>setTweak("accent",c)}
+                    className={"btn " + (tweaks.accent===c?"active":"")} style={{ flex:1, textTransform:"capitalize" }}>{c}</button>
+                ))}
+              </div>
+            </div>
+            <div className="mute" style={{ fontSize:10, lineHeight:1.4 }}>
+              Pick a brand accent. Up/down (green/red) stays fixed for P&L clarity.
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Screener() {
+  return (
+    <div style={{ padding:16 }}>
+      <Card title="Screener" sub="build your own filter">
+        <div style={{ padding:"60px 24px", textAlign:"center", color:"var(--fg-mute)" }}>
+          <div style={{ fontSize:36, color:"var(--accent)", opacity:0.5 }}>▣</div>
+          <div style={{ marginTop:10 }}>Coming soon — combine agents + fundamentals + technicals</div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App/>);
+</script>
+</body>
+</html>

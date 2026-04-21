@@ -1,0 +1,194 @@
+/* Daub Workbench — retail-trader aesthetic, distinct from Bloomberg */
+:root {
+  /* Deep warm slate (not pure black) */
+  --bg:         #0c0f14;
+  --bg-1:       #121620;
+  --bg-2:       #181d29;
+  --bg-3:       #1f2533;
+  --card:       #141926;
+  --card-hi:    #1a2030;
+  --inset:      #0a0d13;
+
+  /* Hairlines — subtle, slightly blueish */
+  --line:       #232a3a;
+  --line-2:     #2e3649;
+  --line-3:     #3b4560;
+
+  /* Text — warm off-white (not amber) */
+  --fg:         #e7ebf3;
+  --fg-dim:     #a8afc2;
+  --fg-mute:    #6e7689;
+  --fg-ghost:   #454c5e;
+
+  /* Primary: electric indigo (NOT amber) */
+  --accent:     #8b5cf6;
+  --accent-d:   #6d42d1;
+  --accent-hi:  #b39aff;
+  --accent-bg:  rgba(139,92,246,0.12);
+
+  /* Secondaries */
+  --teal:       #22d3ee;
+  --pink:       #f472b6;
+  --gold:       #f59e0b;
+
+  /* P&L — softer than Bloomberg's pure neon */
+  --up:         #34d399;
+  --up-hi:      #6ee7b7;
+  --up-bg:      rgba(52,211,153,0.12);
+  --down:       #f87171;
+  --down-hi:    #fca5a5;
+  --down-bg:    rgba(248,113,113,0.12);
+  --flat:       #94a3b8;
+
+  /* Sector palette — distinct from Bloomberg */
+  --s-tech:     #8b5cf6;
+  --s-fin:      #22d3ee;
+  --s-hlth:     #f472b6;
+  --s-indu:     #f59e0b;
+  --s-cons:     #34d399;
+  --s-ener:     #94a3b8;
+  --s-def:      #60a5fa;
+
+  --mono:       "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans:       "Inter", system-ui, -apple-system, sans-serif;
+
+  --r-xs:       3px;
+  --r-sm:       5px;
+  --r-md:       8px;
+  --r-lg:       12px;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:var(--sans); font-size:13px; line-height:1.4; -webkit-font-smoothing:antialiased; }
+::selection { background: var(--accent); color:#fff; }
+::-webkit-scrollbar { width:8px; height:8px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--line-2); border-radius:4px; }
+::-webkit-scrollbar-thumb:hover { background:var(--line-3); }
+
+.mono { font-family:var(--mono); font-variant-numeric: tabular-nums; font-feature-settings:"tnum"; }
+.dim  { color:var(--fg-dim); }
+.mute { color:var(--fg-mute); }
+.up   { color:var(--up); }
+.down { color:var(--down); }
+.acc  { color:var(--accent); }
+
+.card {
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow:hidden;
+  position:relative;
+}
+.card::before {
+  content:"";
+  position:absolute; top:0; left:0; right:0; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  pointer-events:none;
+}
+.card-head {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px;
+  border-bottom:1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
+}
+.card-head h3 {
+  margin:0;
+  font-size:12px;
+  font-weight:500;
+  color:var(--fg);
+  letter-spacing:-0.005em;
+}
+.card-head .sub { color:var(--fg-mute); font-size:11px; }
+.card-head .spacer { flex:1; }
+
+.btn {
+  font-family:var(--sans);
+  font-size:11px;
+  font-weight:500;
+  color:var(--fg-dim);
+  background:var(--bg-2);
+  border:1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  padding:4px 10px;
+  cursor:pointer;
+  transition: all 100ms;
+}
+.btn:hover { color:var(--fg); border-color:var(--line-3); background:var(--bg-3); }
+.btn.active { color:#fff; background:var(--accent); border-color:var(--accent); }
+.btn.ghost { background:transparent; border-color:transparent; }
+.btn.ghost:hover { background:var(--bg-2); }
+
+/* Tables — lighter than Bloomberg, more breathing room */
+table.t { width:100%; border-collapse:collapse; font-size:12px; }
+table.t th {
+  text-align:left; font-weight:500; font-size:10.5px;
+  color:var(--fg-mute);
+  padding:9px 12px;
+  background:var(--bg-1);
+  border-bottom:1px solid var(--line);
+  letter-spacing:0.02em;
+  position:sticky; top:0; z-index:1;
+  white-space:nowrap;
+}
+table.t td {
+  padding:9px 12px;
+  border-bottom:1px solid var(--line);
+  white-space:nowrap;
+}
+table.t tr:last-child td { border-bottom:none; }
+table.t tr:hover td { background:var(--card-hi); }
+table.t td.num, table.t th.num { text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; }
+
+.tkr { font-family:var(--mono); font-weight:600; color:var(--fg); letter-spacing:0.01em; }
+
+/* Pills — softer, radius-based */
+.pill {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:10px; font-weight:500;
+  padding:2px 7px;
+  border-radius: var(--r-xs);
+  background:var(--bg-2);
+  color:var(--fg-dim);
+  letter-spacing:0.01em;
+}
+.pill.up   { color:var(--up);     background:var(--up-bg);   }
+.pill.dn   { color:var(--down);   background:var(--down-bg); }
+.pill.acc  { color:var(--accent); background:var(--accent-bg); }
+.pill.gold { color:var(--gold);   background:rgba(245,158,11,0.12); }
+.pill.teal { color:var(--teal);   background:rgba(34,211,238,0.12); }
+.pill.solid { color:#fff; background:var(--accent); }
+
+/* Bars */
+.bar { position:relative; height:5px; background:var(--bg-3); border-radius:3px; overflow:hidden; }
+.bar-inner { position:absolute; inset:0 auto 0 0; background:var(--accent); border-radius:3px; }
+
+.dot { display:inline-block; width:6px; height:6px; border-radius:50%; }
+.dot.live { background:var(--up); box-shadow:0 0 0 3px rgba(52,211,153,0.15); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.55; } }
+
+button:focus, input:focus { outline:none; }
+input { font-family:var(--sans); font-size:13px; background:transparent; border:none; color:var(--fg); width:100%; }
+input::placeholder { color:var(--fg-mute); }
+
+.kbd {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:18px; padding:2px 5px;
+  font-family:var(--mono); font-size:10px;
+  background:var(--bg-3);
+  border:1px solid var(--line-3);
+  border-radius: var(--r-xs);
+  color:var(--fg-dim);
+}
+
+.blink { animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity:0.3; } }
+
+.chip {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:10px;
+  color:var(--fg-mute);
+  padding:1px 6px;
+  border:1px solid var(--line-2);
+  border-radius: var(--r-xs);
+}
