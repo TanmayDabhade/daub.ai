@@ -10,54 +10,25 @@ interface Article {
   url: string;
   tickers: string[];
   snippet: string;
+  source?: string;
 }
 
 const DEMO_ARTICLES: Article[] = [
-  {
-    title: "NVIDIA Reports Record Data Center Revenue, Beats Estimates",
-    author: "Reuters",
-    published: "2026-04-12T09:00:00.000Z",
-    url: "#",
-    tickers: ["NVDA"],
-    snippet:
-      "NVIDIA reported quarterly data center revenue of $18.4B, up 154% YoY...",
-  },
-  {
-    title: "Fed Minutes Signal Patience on Rate Cuts",
-    author: "Bloomberg",
-    published: "2026-04-12T08:00:00.000Z",
-    url: "#",
-    tickers: [],
-    snippet:
-      "Federal Reserve officials indicated they are in no rush to lower rates...",
-  },
-  {
-    title: "Apple Services Revenue Hits All-Time High",
-    author: "CNBC",
-    published: "2026-04-12T07:00:00.000Z",
-    url: "#",
-    tickers: ["AAPL"],
-    snippet:
-      "Apple's services segment posted record quarterly revenue of $23.1B...",
-  },
-  {
-    title: "JPMorgan Raises Dividend, Announces $30B Buyback",
-    author: "WSJ",
-    published: "2026-04-12T06:00:00.000Z",
-    url: "#",
-    tickers: ["JPM"],
-    snippet:
-      "JPMorgan Chase announced a dividend increase and a new share repurchase program...",
-  },
-  {
-    title: "Oil Prices Fall on Demand Concerns",
-    author: "Reuters",
-    published: "2026-04-12T05:00:00.000Z",
-    url: "#",
-    tickers: ["XOM", "CVX"],
-    snippet:
-      "Crude oil prices dropped 2% as economic data raised concerns about global demand...",
-  },
+  { title: "NVIDIA Reports Record Data Center Revenue, Beats Estimates", author: "Reuters",
+    published: new Date(Date.now() - 12 * 60000).toISOString(), url: "#", tickers: ["NVDA"],
+    snippet: "NVIDIA reported quarterly data center revenue of $18.4B, up 154% YoY..." },
+  { title: "Fed Minutes Signal Patience on Rate Cuts", author: "Bloomberg",
+    published: new Date(Date.now() - 48 * 60000).toISOString(), url: "#", tickers: [],
+    snippet: "Federal Reserve officials indicated they are in no rush to lower rates..." },
+  { title: "Apple Services Revenue Hits All-Time High", author: "CNBC",
+    published: new Date(Date.now() - 90 * 60000).toISOString(), url: "#", tickers: ["AAPL"],
+    snippet: "Apple's services segment posted record quarterly revenue of $23.1B..." },
+  { title: "JPMorgan Raises Dividend, Announces $30B Buyback", author: "WSJ",
+    published: new Date(Date.now() - 120 * 60000).toISOString(), url: "#", tickers: ["JPM"],
+    snippet: "JPMorgan Chase announced a dividend increase and a new share repurchase program..." },
+  { title: "Oil Prices Fall on Demand Concerns", author: "Reuters",
+    published: new Date(Date.now() - 180 * 60000).toISOString(), url: "#", tickers: ["XOM", "CVX"],
+    snippet: "Crude oil prices dropped 2% as economic data raised concerns about global demand..." },
 ];
 
 function timeAgo(dateStr: string): string {
@@ -69,84 +40,62 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d`;
 }
 
-export default function NewsTile({
-  positions,
-}: {
-  positions: Position[];
-}) {
+export default function NewsTile({ positions }: { positions: Position[] }) {
   const [articles, setArticles] = useState<Article[]>(DEMO_ARTICLES);
+  const [source, setSource] = useState<string>("demo");
 
   useEffect(() => {
     const tickers = positions.map((p) => p.ticker);
-    if (!tickers.length) return;
-
-    fetch(`/api/market?action=news&tickers=${tickers.join(",")}&limit=8`)
+    const symbolParam = tickers.length ? `&symbols=${tickers.join(",")}` : "";
+    fetch(`/api/news?limit=10${symbolParam}`)
       .then((r) => r.json())
       .then((json) => {
         if (json.articles?.length) {
           setArticles(json.articles);
+          setSource(json.source ?? "live");
         }
       })
       .catch(() => {});
   }, [positions]);
 
   return (
-    <div className="p-4 h-full flex flex-col">
-      <h3
-        className="text-[10px] uppercase tracking-wider font-medium mb-3"
-        style={{ color: "var(--fg-muted)" }}
-      >
-        News
-      </h3>
-      <div className="flex-1 overflow-y-auto space-y-0">
-        {articles.map((a, i) => (
-          <a
-            key={i}
-            href={a.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block py-2.5 transition-colors"
-            style={{
-              borderBottom: "1px solid var(--border)",
-              textDecoration: "none",
-            }}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <p
-                className="text-[12px] font-medium leading-snug"
-                style={{ color: "var(--fg)" }}
-              >
-                {a.title}
-              </p>
-              <span
-                className="text-[10px] font-mono shrink-0"
-                style={{ color: "var(--fg-muted)" }}
-              >
-                {timeAgo(a.published)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <span
-                className="text-[10px]"
-                style={{ color: "var(--fg-muted)" }}
-              >
-                {a.author}
-              </span>
-              {a.tickers.slice(0, 3).map((t) => (
-                <span
-                  key={t}
-                  className="text-[9px] font-mono px-1 py-0.5"
-                  style={{
-                    color: "var(--fg-secondary)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </a>
-        ))}
+    <div style={{ padding: "10px 0" }}>
+      <div className="card-head" style={{ padding: "10px 14px" }}>
+        <h3>Headlines</h3>
+        <span className="sub">tickers you hold</span>
+        <span style={{ flex: 1 }} />
+        {source !== "demo" && (
+          <span className="chip" style={{ fontSize: 9 }}>{source}</span>
+        )}
+      </div>
+      <div style={{ maxHeight: 320, overflow: "auto" }}>
+        <table className="t">
+          <tbody>
+            {articles.map((a, i) => (
+              <tr key={i}>
+                <td className="mute mono" style={{ width: 34, fontSize: 10.5 }}>
+                  {timeAgo(a.published)}
+                </td>
+                <td style={{ width: 44 }}>
+                  <span className="pill" style={{ fontSize: 9 }}>
+                    {(a.source ?? a.author ?? "").substring(0, 5).toUpperCase()}
+                  </span>
+                </td>
+                <td>
+                  {a.tickers.slice(0, 2).map((t) => (
+                    <span key={t} className="tkr" style={{ marginRight: 4, fontSize: 11 }}>{t}</span>
+                  ))}
+                </td>
+                <td style={{ whiteSpace: "normal", lineHeight: 1.45 }}>
+                  <a href={a.url} target="_blank" rel="noopener noreferrer"
+                     style={{ color: "inherit", textDecoration: "none" }}>
+                    {a.title}
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
