@@ -91,8 +91,30 @@ CREATE INDEX IF NOT EXISTS idx_trades_ticker ON trades(ticker);
 CREATE INDEX IF NOT EXISTS idx_snapshots_date ON portfolio_snapshots(snapshot_at DESC);
 CREATE INDEX IF NOT EXISTS idx_performance_agent ON agent_performance(agent_type, evaluated_at DESC);
 
+-- Simulated broker state (replaces Alpaca paper trading).
+-- Single-row account ledger; positions keyed by ticker.
+CREATE TABLE IF NOT EXISTS sim_account (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  cash FLOAT NOT NULL,
+  realized_pnl FLOAT NOT NULL DEFAULT 0,
+  initial_capital FLOAT NOT NULL,
+  peak_equity FLOAT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT sim_account_singleton CHECK (id = 1)
+);
+
+CREATE TABLE IF NOT EXISTS sim_positions (
+  ticker TEXT PRIMARY KEY,
+  qty INTEGER NOT NULL,
+  avg_entry_price FLOAT NOT NULL,
+  opened_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Enable Realtime on key tables
 ALTER PUBLICATION supabase_realtime ADD TABLE agent_analyses;
 ALTER PUBLICATION supabase_realtime ADD TABLE trade_signals;
 ALTER PUBLICATION supabase_realtime ADD TABLE trades;
 ALTER PUBLICATION supabase_realtime ADD TABLE portfolio_snapshots;
+ALTER PUBLICATION supabase_realtime ADD TABLE sim_account;
+ALTER PUBLICATION supabase_realtime ADD TABLE sim_positions;

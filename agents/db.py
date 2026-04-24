@@ -231,6 +231,81 @@ def update_signal_status(signal_id: str, status: str) -> Optional[dict]:
     return result.data[0] if result.data else None
 
 
+# --- Simulated broker state ---
+
+def get_sim_account() -> Optional[dict]:
+    client = _get_client()
+    if not client:
+        return None
+    result = client.table("sim_account").select("*").eq("id", 1).limit(1).execute()
+    return result.data[0] if result.data else None
+
+
+def init_sim_account(initial_capital: float) -> Optional[dict]:
+    """Seed the singleton sim_account row if it doesn't exist. Idempotent."""
+    client = _get_client()
+    if not client:
+        return None
+    existing = get_sim_account()
+    if existing:
+        return existing
+    row = {
+        "id": 1,
+        "cash": initial_capital,
+        "realized_pnl": 0,
+        "initial_capital": initial_capital,
+        "peak_equity": initial_capital,
+    }
+    result = client.table("sim_account").insert(row).execute()
+    return result.data[0] if result.data else None
+
+
+def update_sim_account(**kwargs) -> Optional[dict]:
+    client = _get_client()
+    if not client:
+        return None
+    kwargs["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = client.table("sim_account").update(kwargs).eq("id", 1).execute()
+    return result.data[0] if result.data else None
+
+
+def get_sim_positions() -> list[dict]:
+    client = _get_client()
+    if not client:
+        return []
+    result = client.table("sim_positions").select("*").execute()
+    return result.data or []
+
+
+def get_sim_position(ticker: str) -> Optional[dict]:
+    client = _get_client()
+    if not client:
+        return None
+    result = client.table("sim_positions").select("*").eq("ticker", ticker).limit(1).execute()
+    return result.data[0] if result.data else None
+
+
+def upsert_sim_position(ticker: str, qty: int, avg_entry_price: float) -> Optional[dict]:
+    client = _get_client()
+    if not client:
+        return None
+    row = {
+        "ticker": ticker,
+        "qty": qty,
+        "avg_entry_price": avg_entry_price,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = client.table("sim_positions").upsert(row).execute()
+    return result.data[0] if result.data else None
+
+
+def delete_sim_position(ticker: str) -> None:
+    client = _get_client()
+    if not client:
+        return
+    client.table("sim_positions").delete().eq("ticker", ticker).execute()
+
+
 def get_watchlist() -> list[dict]:
     client = _get_client()
     if not client:

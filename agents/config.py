@@ -14,6 +14,15 @@ POLYGON_API_KEY = os.getenv("POLYGON_API_KEY", "")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 EDGAR_USER_AGENT = os.getenv("EDGAR_USER_AGENT", "SwarmCapital admin@swarmcapital.ai")
+FRED_API_KEY = os.getenv("FRED_API_KEY", "")
+
+# --- Execution ---
+# "sim" (default) routes orders to the in-process simulated broker backed by
+# Supabase. "alpaca" uses the legacy Alpaca paper account (blocked by KYC).
+EXECUTION_MODE = os.getenv("EXECUTION_MODE", "sim")
+SIM_INITIAL_CAPITAL = float(os.getenv("SIM_INITIAL_CAPITAL", "100000"))
+SIM_SLIPPAGE_BPS = float(os.getenv("SIM_SLIPPAGE_BPS", "5"))    # 5 bps = 0.05%
+SIM_COMMISSION_PER_TRADE = float(os.getenv("SIM_COMMISSION_PER_TRADE", "0"))
 
 # --- Claude Models ---
 FAST_MODEL = "claude-sonnet-4-6"

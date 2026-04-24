@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Daub.ai — An AI-native hedge fund, built for you.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=GT+Sectra&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ink:#131211;
+  --ink-2:#1e1c1a;
+  --paper:#f5f1ea;
+  --paper-2:#ece6db;
+  --paper-3:#e1d9ca;
+  --rule:#2a2724;
+  --rule-soft:#c9bfac;
+  --dim:#6b6456;
+  --dim-2:#8a8370;
+  --accent:#c9361b;
+  --accent-ink:#8a2310;
+  --good:#2d7a3f;
+  --bad:#c9361b;
+  --amber:#c48a1a;
+  --serif:"Newsreader","Instrument Serif",Georgia,serif;
+  --display:"Instrument Serif","GT Sectra",Georgia,serif;
+  --sans:"Geist","Inter",system-ui,-apple-system,sans-serif;
+  --mono:"Geist Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-feature-settings:"ss01","ss02";}
+body{overflow-x:hidden}
+::selection{background:var(--ink);color:var(--paper)}
+a{color:inherit}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:0.86em;letter-spacing:-0.01em}
+.sans{font-family:var(--sans)}
+.serif{font-family:var(--serif)}
+.display{font-family:var(--display);font-weight:400;letter-spacing:-0.025em;line-height:0.96}
+.small{font-size:12px;letter-spacing:0.02em}
+.cap{font-family:var(--sans);text-transform:uppercase;letter-spacing:0.14em;font-size:11px;font-weight:500;color:var(--dim)}
+.rule{border:0;border-top:1px solid var(--rule-soft);margin:0}
+.rule-thick{border:0;border-top:2px solid var(--ink);margin:0}
+.rule-double{border:0;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);height:4px}
+
+/* layout */
+.container{max-width:1280px;margin:0 auto;padding:0 32px}
+.wide{max-width:1440px;margin:0 auto;padding:0 32px}
+
+/* masthead */
+.mast{border-bottom:1px solid var(--ink);background:var(--paper);position:sticky;top:0;z-index:50;backdrop-filter:blur(8px)}
+.mast-top{display:flex;align-items:center;gap:24px;padding:10px 32px;font-family:var(--sans);font-size:12px;color:var(--dim)}
+.mast-top .date{font-variant-numeric:tabular-nums}
+.mast-top .sep{width:1px;height:10px;background:var(--rule-soft)}
+.mast-mid{display:flex;align-items:end;justify-content:space-between;padding:4px 32px 10px;gap:24px;border-top:1px solid var(--rule-soft)}
+.mast-title{font-family:var(--display);font-size:56px;line-height:1;letter-spacing:-0.035em;display:flex;align-items:baseline;gap:2px}
+.mast-title .dot{width:10px;height:10px;background:var(--accent);display:inline-block;margin:0 1px 8px}
+.mast-title em{font-style:italic;color:var(--accent-ink)}
+.mast-nav{display:flex;gap:22px;font-family:var(--sans);font-size:13px;font-weight:500;padding-bottom:8px}
+.mast-nav a{text-decoration:none;position:relative;padding-bottom:2px}
+.mast-nav a:hover{color:var(--accent-ink)}
+.mast-nav a.cta{background:var(--ink);color:var(--paper);padding:6px 12px;border-radius:1px}
+.mast-nav a.cta:hover{background:var(--accent);color:var(--paper)}
+
+/* ── HERO ── */
+.hero{padding:56px 0 40px;border-bottom:2px solid var(--ink)}
+.hero-grid{display:grid;grid-template-columns:1fr 380px;gap:56px;align-items:start}
+.edition{display:flex;align-items:center;gap:10px;font-family:var(--sans);font-size:11px;text-transform:uppercase;letter-spacing:0.18em;color:var(--dim);margin-bottom:22px}
+.edition .live{display:inline-flex;align-items:center;gap:6px;color:var(--accent-ink);font-weight:600}
+.edition .live .dot{width:7px;height:7px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.hero h1{font-family:var(--display);font-size:clamp(64px,9vw,132px);line-height:0.92;letter-spacing:-0.035em;margin:0;font-weight:400}
+.hero h1 em{font-style:italic;color:var(--accent-ink)}
+.hero h1 .amp{font-style:italic;color:var(--dim-2);font-weight:300}
+.hero-deck{margin-top:28px;font-family:var(--serif);font-size:22px;line-height:1.45;color:var(--ink-2);max-width:640px;font-weight:400}
+.hero-deck em{font-style:italic;color:var(--accent-ink)}
+.byline{margin-top:26px;display:flex;align-items:center;gap:16px;font-family:var(--sans);font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:0.12em}
+.byline .author{color:var(--ink);font-weight:500}
+.cta-row{margin-top:32px;display:flex;gap:14px;align-items:center}
+.btn-primary{font-family:var(--sans);font-size:14px;font-weight:500;padding:14px 22px;background:var(--ink);color:var(--paper);text-decoration:none;display:inline-flex;align-items:center;gap:10px;border-radius:2px;transition:all 0.15s}
+.btn-primary:hover{background:var(--accent);transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink)}
+.btn-primary .arr{transition:transform 0.2s}
+.btn-primary:hover .arr{transform:translateX(3px)}
+.btn-ghost{font-family:var(--sans);font-size:14px;font-weight:500;padding:14px 22px;background:transparent;color:var(--ink);text-decoration:none;border:1px solid var(--ink);border-radius:2px}
+.btn-ghost:hover{background:var(--ink);color:var(--paper)}
+
+/* hero sidebar — live reasoning */
+.hero-side{border-left:1px solid var(--ink);padding-left:28px;position:relative}
+.hero-side::before{content:"";position:absolute;top:0;left:-4px;width:7px;height:7px;background:var(--accent);border-radius:50%}
+.hs-label{font-family:var(--sans);font-size:10px;text-transform:uppercase;letter-spacing:0.18em;color:var(--accent-ink);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.hs-label .pulse{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 1.5s infinite}
+.hs-title{font-family:var(--display);font-size:22px;line-height:1.2;margin-bottom:16px;font-style:italic}
+.stream{display:flex;flex-direction:column;gap:10px;font-family:var(--mono);font-size:11.5px;line-height:1.45;max-height:380px;overflow:hidden;position:relative;mask-image:linear-gradient(to bottom,black 75%,transparent 100%)}
+.ev{padding-bottom:10px;border-bottom:1px solid var(--rule-soft);animation:fadeup 0.5s ease-out}
+@keyframes fadeup{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.ev-head{display:flex;align-items:baseline;gap:8px;font-family:var(--sans);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--dim);margin-bottom:4px}
+.ev-head .ag{color:var(--accent-ink);font-weight:600}
+.ev-head .tk{color:var(--ink);font-weight:600;font-family:var(--mono);letter-spacing:0.02em;font-size:11px}
+.ev-head .sig-up{color:var(--good);font-weight:700}
+.ev-head .sig-dn{color:var(--bad);font-weight:700}
+.ev-msg{color:var(--ink-2);font-family:var(--serif);font-size:14px;line-height:1.5}
+
+/* marquee band */
+.band{background:var(--ink);color:var(--paper);overflow:hidden;border-bottom:1px solid var(--ink)}
+.band-track{display:inline-flex;animation:scroll-x 60s linear infinite;white-space:nowrap;padding:14px 0;gap:0}
+.band-item{padding:0 28px;font-family:var(--display);font-size:22px;letter-spacing:-0.01em;display:inline-flex;align-items:center;gap:14px}
+.band-item .star{color:var(--accent);font-size:14px}
+.band-item em{font-style:italic;color:#d9c9a8}
+@keyframes scroll-x{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ── SECTION HEAD ── */
+.sec{padding:96px 0;border-bottom:1px solid var(--ink);position:relative}
+.sec-head{display:grid;grid-template-columns:120px 1fr;gap:40px;margin-bottom:56px;align-items:start}
+.sec-num{font-family:var(--display);font-size:88px;line-height:0.9;color:var(--accent);font-style:italic;font-weight:300}
+.sec-title{font-family:var(--display);font-size:56px;line-height:1;letter-spacing:-0.025em;margin:0;font-weight:400}
+.sec-title em{font-style:italic}
+.sec-kicker{font-family:var(--sans);font-size:11px;text-transform:uppercase;letter-spacing:0.18em;color:var(--dim);margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.sec-kicker::before{content:"§";color:var(--accent);font-family:var(--display);font-style:italic;font-size:16px}
+.sec-deck{font-family:var(--serif);font-size:20px;line-height:1.55;max-width:720px;color:var(--ink-2);margin-top:14px}
+
+/* ── HOW IT WORKS ── */
+.swarm-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-top:1px solid var(--ink);border-left:1px solid var(--ink)}
+.swarm-cell{border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:22px;background:var(--paper-2);position:relative;min-height:220px;display:flex;flex-direction:column}
+.swarm-cell:hover{background:var(--paper-3)}
+.swarm-cell .ix{font-family:var(--display);font-size:16px;color:var(--accent);font-style:italic;position:absolute;top:10px;right:14px}
+.swarm-cell .name{font-family:var(--display);font-size:28px;line-height:1;margin-bottom:6px;font-weight:400}
+.swarm-cell .role{font-family:var(--sans);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--accent-ink);margin-bottom:14px;font-weight:600}
+.swarm-cell .body{font-family:var(--serif);font-size:14.5px;line-height:1.5;color:var(--ink-2);flex:1}
+.swarm-cell .stat{margin-top:14px;padding-top:10px;border-top:1px solid var(--rule-soft);display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+.swarm-cell .stat strong{color:var(--ink)}
+
+.flow-diag{margin-top:48px;padding:32px;background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:12px;line-height:1.8;border-radius:2px;overflow:auto;white-space:pre;margin-block:48px 0}
+.flow-diag .arr{color:var(--accent)}
+.flow-diag .cmt{color:#d9c9a8;font-style:italic}
+.flow-diag .node{color:#f5cd98}
+
+/* ── TEARDOWN DEMO ── */
+.teardown{background:var(--ink);color:var(--paper);margin:0 -32px;padding:64px 32px;border-radius:0;margin-top:48px}
+.td-head{display:flex;align-items:baseline;gap:16px;margin-bottom:28px;border-bottom:1px solid rgba(255,255,255,0.15);padding-bottom:16px}
+.td-ticker{font-family:var(--display);font-size:72px;line-height:0.9;color:var(--paper);font-weight:400}
+.td-name{font-family:var(--sans);font-size:14px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.1em}
+.td-px{margin-left:auto;text-align:right;font-family:var(--mono)}
+.td-px .p{font-size:28px;color:var(--paper)}
+.td-px .c{font-size:14px;color:#86e899}
+.td-body{display:grid;grid-template-columns:1.2fr 1fr;gap:48px;align-items:start}
+.td-verdict{border:1px solid rgba(255,255,255,0.2);padding:20px;margin-bottom:24px;border-radius:2px;background:rgba(201,54,27,0.08)}
+.td-verdict .v-label{font-family:var(--sans);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--accent);font-weight:600;margin-bottom:8px}
+.td-verdict .v-call{font-family:var(--display);font-size:32px;line-height:1.1;font-style:italic;color:var(--paper)}
+.td-verdict .v-call strong{color:var(--accent);font-style:normal;font-weight:400}
+.td-verdict .v-sub{font-family:var(--serif);font-size:15px;margin-top:10px;color:rgba(255,255,255,0.75);line-height:1.45}
+.td-pros-cons{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.td-list h4{font-family:var(--sans);font-size:11px;text-transform:uppercase;letter-spacing:0.14em;margin:0 0 10px;color:rgba(255,255,255,0.5)}
+.td-list ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.td-list li{font-family:var(--serif);font-size:14px;line-height:1.45;color:rgba(255,255,255,0.85);padding-left:16px;position:relative}
+.td-list.pros li::before{content:"+";position:absolute;left:0;color:#86e899;font-weight:700}
+.td-list.cons li::before{content:"−";position:absolute;left:0;color:var(--accent);font-weight:700}
+.td-metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.1)}
+.td-metric{background:var(--ink);padding:14px 16px}
+.td-metric .l{font-family:var(--sans);font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.5);margin-bottom:4px}
+.td-metric .v{font-family:var(--mono);font-size:22px;color:var(--paper)}
+.td-metric .d{font-family:var(--mono);font-size:11px;color:#86e899;margin-top:2px}
+.td-metric .d.dn{color:var(--accent)}
+.td-chart{margin-top:24px}
+
+/* ── NUMBERS ── */
+.numbers-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+.num-cell{padding:32px 24px;border-right:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:4px}
+.num-cell:last-child{border-right:0}
+.num-cell .big{font-family:var(--display);font-size:72px;line-height:0.9;font-weight:400}
+.num-cell .big em{font-style:italic;color:var(--accent-ink)}
+.num-cell .big .pct{font-family:var(--mono);font-size:28px;vertical-align:super;color:var(--dim-2);font-style:normal}
+.num-cell .lbl{font-family:var(--sans);font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:var(--dim);margin-top:10px}
+.num-cell .sub{font-family:var(--serif);font-size:14px;color:var(--ink-2);line-height:1.45;margin-top:6px}
+
+/* ── VS OLD WAY ── */
+.vs-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--ink)}
+.vs-col{padding:28px 32px;border-right:1px solid var(--ink)}
+.vs-col:last-child{border-right:0;background:var(--ink);color:var(--paper)}
+.vs-col h3{font-family:var(--display);font-size:36px;margin:0 0 6px;font-weight:400}
+.vs-col:last-child h3{color:var(--paper)}
+.vs-col h3 em{font-style:italic;color:var(--accent-ink)}
+.vs-col:last-child h3 em{color:var(--accent)}
+.vs-col .tag{font-family:var(--sans);font-size:10px;text-transform:uppercase;letter-spacing:0.16em;color:var(--dim);margin-bottom:4px}
+.vs-col:last-child .tag{color:rgba(255,255,255,0.5)}
+.vs-items{margin-top:20px;display:flex;flex-direction:column;gap:14px}
+.vs-item{padding:14px 0;border-top:1px solid var(--rule-soft);display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start}
+.vs-col:last-child .vs-item{border-top-color:rgba(255,255,255,0.15)}
+.vs-item .icon{font-family:var(--display);font-size:18px;font-style:italic}
+.vs-col:first-child .vs-item .icon{color:var(--dim-2)}
+.vs-col:last-child .vs-item .icon{color:var(--accent)}
+.vs-item .t{font-family:var(--serif);font-size:15.5px;line-height:1.45}
+
+/* ── MANIFESTO ── */
+.manifesto{padding:120px 0;background:var(--paper-2);border-bottom:1px solid var(--ink)}
+.man-inner{max-width:880px;margin:0 auto;padding:0 32px}
+.man-kick{font-family:var(--sans);font-size:11px;text-transform:uppercase;letter-spacing:0.2em;color:var(--accent-ink);margin-bottom:24px;font-weight:600}
+.man-text{font-family:var(--serif);font-size:28px;line-height:1.4;letter-spacing:-0.005em;color:var(--ink)}
+.man-text p{margin:0 0 28px}
+.man-text em{font-style:italic;color:var(--accent-ink)}
+.man-text .dropcap::first-letter{font-family:var(--display);font-size:88px;line-height:0.8;float:left;padding:6px 10px 0 0;color:var(--accent-ink);font-style:italic;font-weight:400}
+.man-sig{margin-top:40px;padding-top:20px;border-top:1px solid var(--ink);display:flex;justify-content:space-between;align-items:baseline;font-family:var(--sans);font-size:13px;color:var(--dim)}
+.man-sig .name{font-family:var(--display);font-style:italic;font-size:28px;color:var(--ink)}
+
+/* ── FAQ ── */
+.faq{display:grid;grid-template-columns:repeat(2,1fr);gap:0;border-top:1px solid var(--ink)}
+.faq-item{padding:22px 24px;border-right:1px solid var(--rule-soft);border-bottom:1px solid var(--rule-soft)}
+.faq-item:nth-child(2n){border-right:0}
+.faq-q{font-family:var(--display);font-size:22px;line-height:1.25;margin-bottom:10px;font-weight:400}
+.faq-q em{font-style:italic;color:var(--accent-ink)}
+.faq-a{font-family:var(--serif);font-size:15px;line-height:1.55;color:var(--ink-2)}
+
+/* ── FOOTER CTA ── */
+.fcta{background:var(--ink);color:var(--paper);padding:96px 0;text-align:center;position:relative;overflow:hidden}
+.fcta::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.fcta h2{font-family:var(--display);font-size:clamp(56px,9vw,112px);line-height:0.95;letter-spacing:-0.03em;margin:0 0 24px;font-weight:400}
+.fcta h2 em{font-style:italic;color:var(--accent)}
+.fcta .deck{font-family:var(--serif);font-size:19px;line-height:1.5;max-width:560px;margin:0 auto 32px;color:rgba(255,255,255,0.7)}
+.wait-form{display:flex;max-width:480px;margin:0 auto;gap:0;border:1px solid rgba(255,255,255,0.3);border-radius:2px;overflow:hidden}
+.wait-form input{flex:1;padding:16px 18px;background:transparent;border:0;color:var(--paper);font-family:var(--sans);font-size:15px;outline:none}
+.wait-form input::placeholder{color:rgba(255,255,255,0.45)}
+.wait-form button{padding:16px 22px;background:var(--accent);color:var(--paper);border:0;font-family:var(--sans);font-size:14px;font-weight:500;cursor:pointer;letter-spacing:0.02em}
+.wait-form button:hover{background:#e04225}
+.fcta .count{margin-top:18px;font-family:var(--sans);font-size:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.12em}
+.fcta .count strong{color:var(--paper);font-family:var(--mono);font-weight:500}
+
+/* footer */
+.footer{background:var(--paper);padding:40px 0 28px;border-top:2px solid var(--ink)}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px;margin-bottom:32px}
+.footer h4{font-family:var(--sans);font-size:11px;text-transform:uppercase;letter-spacing:0.16em;color:var(--dim);margin:0 0 12px;font-weight:500}
+.footer a{display:block;font-family:var(--sans);font-size:14px;color:var(--ink);text-decoration:none;padding:3px 0}
+.footer a:hover{color:var(--accent-ink)}
+.footer-brand{font-family:var(--display);font-size:40px;line-height:1;margin:0 0 10px;letter-spacing:-0.02em}
+.footer-brand .dot{display:inline-block;width:8px;height:8px;background:var(--accent);margin:0 1px 5px}
+.footer-tag{font-family:var(--serif);font-size:15px;color:var(--dim);font-style:italic;max-width:360px;line-height:1.5}
+.footer-legal{font-family:var(--sans);font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.1em;border-top:1px solid var(--rule-soft);padding-top:20px;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.footer-legal .disclaimer{font-family:var(--serif);font-size:11px;text-transform:none;letter-spacing:0;max-width:620px;font-style:italic;color:var(--dim-2)}
+
+/* micro details */
+.highlight-box{border:1px solid var(--ink);padding:18px 22px;margin:24px 0;background:var(--paper-2);position:relative}
+.highlight-box::before{content:"¶";position:absolute;top:-12px;left:16px;background:var(--paper);padding:0 8px;font-family:var(--display);font-style:italic;color:var(--accent);font-size:20px}
+.highlight-box .l{font-family:var(--sans);font-size:10px;text-transform:uppercase;letter-spacing:0.16em;color:var(--accent-ink);font-weight:600;margin-bottom:6px}
+.highlight-box .t{font-family:var(--serif);font-size:16px;line-height:1.5}
+.figcap{font-family:var(--sans);font-size:10.5px;text-transform:uppercase;letter-spacing:0.12em;color:var(--dim);margin-top:8px}
+.figcap::before{content:"Fig. ";color:var(--accent-ink);font-weight:600}
+
+@media (max-width:1100px){
+  .sec-title{font-size:44px}
+  .sec-head{margin-bottom:40px}
+  .hero h1{font-size:clamp(56px,8.4vw,96px)}
+}
+@media (max-width:900px){
+  .hero-grid,.vs-grid,.numbers-grid,.swarm-grid,.faq,.footer-grid,.td-body{grid-template-columns:1fr}
+  .sec-head{grid-template-columns:1fr;gap:8px;margin-bottom:32px}
+  .sec-num{font-size:56px}
+  .sec-title{font-size:40px}
+  .td-ticker{font-size:48px}
+  .numbers-grid .num-cell{border-right:0;border-bottom:1px solid var(--rule-soft)}
+  .mast-mid{flex-direction:column;align-items:flex-start}
+  .flow-diag{font-size:10.5px;padding:20px}
+}
+</style>
+</head>
+<body>
+
+<!-- MASTHEAD -->
+<header class="mast">
+  <div class="mast-top">
+    <span class="date">Tuesday, 21 April 2026</span>
+    <span class="sep"></span>
+    <span>Vol. I · No. 037</span>
+    <span class="sep"></span>
+    <span>Pre-Launch Edition</span>
+    <span style="flex:1"></span>
+    <span>NYSE 09:42 ET · <span class="mono">SPX</span> 5,842 <span style="color:var(--good)">▲0.42%</span></span>
+  </div>
+  <div class="mast-mid">
+    <div class="mast-title">Daub<span class="dot"></span><em>ai</em></div>
+    <nav class="mast-nav">
+      <a href="#how">How it works</a>
+      <a href="#teardown">Sample research</a>
+      <a href="#vs">Old vs new</a>
+      <a href="#manifesto">Manifesto</a>
+      <a href="#faq">FAQ</a>
+      <a href="#waitlist" class="cta">Join waitlist →</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="edition">
+          <span>The Morning Brief</span>
+          <span>·</span>
+          <span class="live"><span class="dot"></span>Markets open · 09:42:14 ET</span>
+        </div>
+        <h1>An AI-native<br/>hedge fund, <em>built&#8239;for&#8239;you.</em></h1>
+        <p class="hero-deck">Five specialist agents read every <em>10-Q</em>, listen to every earnings call, and watch every tape — so you don't have to. Paper-traded. Fully reasoned. <em>Your edge, quietly compounding.</em></p>
+        <div class="byline">
+          <span>By <span class="author">The Daub Swarm</span></span>
+          <span>·</span>
+          <span>Paper account, live research</span>
+        </div>
+        <div class="cta-row">
+          <a href="#waitlist" class="btn-primary">Claim early access<span class="arr">→</span></a>
+          <a href="#how" class="btn-ghost">See it think</a>
+        </div>
+      </div>
+
+      <aside class="hero-side">
+        <div class="hs-label"><span class="pulse"></span>Live · Agent reasoning</div>
+        <div class="hs-title">"What our swarm is reading right now."</div>
+        <div class="stream" id="stream">
+          <!-- injected by JS -->
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE BAND -->
+<div class="band">
+  <div class="band-track" id="band">
+    <!-- injected -->
+  </div>
+</div>
+
+<!-- §1 HOW IT WORKS -->
+<section class="sec" id="how">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-num">I.</div>
+      <div>
+        <div class="sec-kicker">The Method · How the swarm works</div>
+        <h2 class="sec-title">Five specialists, <em>one thesis</em>.</h2>
+        <p class="sec-deck">A Wall Street research desk is a room full of analysts with different obsessions. So is Daub — except ours run on Claude, read every document ever filed, and never take a lunch break. Each agent owns a slice of the truth; an aggregator weighs the evidence and proposes a trade.</p>
+      </div>
+    </div>
+
+    <div class="swarm-grid" id="swarm">
+      <div class="swarm-cell">
+        <span class="ix">i.</span>
+        <div class="name">Filings</div>
+        <div class="role">— the archivist</div>
+        <div class="body">Reads 10-Qs, 10-Ks, 8-Ks the minute they hit EDGAR. Diffs the language quarter-over-quarter. Flags the footnote that matters.</div>
+        <div class="stat"><span>Hit rate</span><strong>71%</strong></div>
+      </div>
+      <div class="swarm-cell">
+        <span class="ix">ii.</span>
+        <div class="name">Earnings</div>
+        <div class="role">— the listener</div>
+        <div class="body">Ingests every transcript. Scores CFO evasions. Catches the moment guidance is quietly walked back.</div>
+        <div class="stat"><span>Hit rate</span><strong>68%</strong></div>
+      </div>
+      <div class="swarm-cell">
+        <span class="ix">iii.</span>
+        <div class="name">Sentiment</div>
+        <div class="role">— the tape-watcher</div>
+        <div class="body">Parses news, social, brokerage notes. Detects sentiment inflections hours before consensus moves.</div>
+        <div class="stat"><span>Hit rate</span><strong>59%</strong></div>
+      </div>
+      <div class="swarm-cell">
+        <span class="ix">iv.</span>
+        <div class="name">Macro</div>
+        <div class="role">— the weatherman</div>
+        <div class="body">Tracks Fed minutes, curve shape, cross-asset flow. Names the regime; tilts the book accordingly.</div>
+        <div class="stat"><span>Hit rate</span><strong>64%</strong></div>
+      </div>
+      <div class="swarm-cell" style="background:var(--ink);color:var(--paper)">
+        <span class="ix" style="color:var(--accent)">v.</span>
+        <div class="name" style="color:var(--paper)">Aggregator</div>
+        <div class="role" style="color:var(--accent)">— the portfolio manager</div>
+        <div class="body" style="color:rgba(255,255,255,0.8)">Weighs the four. Resolves conflicts with evidence. Sizes the position against risk. Explains, in plain English, why.</div>
+        <div class="stat" style="border-top-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6)"><span>Hit rate</span><strong style="color:var(--paper)">73%</strong></div>
+      </div>
+    </div>
+
+    <pre class="flow-diag"><span class="cmt">// every 15 minutes, for every name you hold</span>
+
+<span class="node">[EDGAR]</span>         <span class="arr">──▶</span>  <span class="node">filings</span>     ╲
+<span class="node">[transcripts]</span>   <span class="arr">──▶</span>  <span class="node">earnings</span>    ╲
+<span class="node">[news · social]</span> <span class="arr">──▶</span>  <span class="node">sentiment</span>   ────▶  <span class="node">[aggregator]</span>  <span class="arr">──▶</span>  <span style="color:var(--accent)">signal · thesis · size · stop</span>
+<span class="node">[FRED · rates]</span>  <span class="arr">──▶</span>  <span class="node">macro</span>       ╱
+<span class="node">[book state]</span>    <span class="arr">──▶</span>  <span class="node">risk</span>        ╱
+</pre>
+    <div class="figcap">Fig. 1 — The inference loop. Runs continuously; retail sees the verdict, not the plumbing.</div>
+  </div>
+</section>
+
+<!-- §2 TEARDOWN -->
+<section class="sec" id="teardown" style="padding-bottom:0">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-num">II.</div>
+      <div>
+        <div class="sec-kicker">Sample research · A real teardown</div>
+        <h2 class="sec-title">What a daily <em>briefing</em> looks like.</h2>
+        <p class="sec-deck">No jargon, no charts-for-the-sake-of-it. A verdict, the three reasons, and the one thing that could break the thesis. This is NVDA, run through the swarm on the morning of 21 April.</p>
+      </div>
+    </div>
+
+    <div class="teardown">
+      <div class="td-head">
+        <div class="td-ticker">NVDA</div>
+        <div class="td-name">NVIDIA&nbsp;CORP &nbsp;·&nbsp; Semis &nbsp;·&nbsp; $2.18T cap</div>
+        <div class="td-px">
+          <div class="p">$892.30</div>
+          <div class="c">▲ +2.11% · +$18.44</div>
+        </div>
+      </div>
+
+      <div class="td-body">
+        <div>
+          <div class="td-verdict">
+            <div class="v-label">Swarm verdict · 21 Apr · 09:34 ET</div>
+            <div class="v-call">Accumulate. <strong>4.0% weight.</strong></div>
+            <div class="v-sub">Four of five agents aligned long. Confidence <span class="mono" style="color:var(--paper)">0.88</span>. The data-center super-cycle got stronger, not weaker, last night.</div>
+          </div>
+
+          <div class="td-pros-cons">
+            <div class="td-list pros">
+              <h4>Reasons to own</h4>
+              <ul>
+                <li>Q3 data-center revenue $30.8B, up 122% year-on-year</li>
+                <li>Sovereign-AI backlog disclosed at ~$8B for the first time</li>
+                <li>Guidance floor raised $1.5B above consensus midpoint</li>
+                <li>Gross margin expanded 60bp QoQ — mix improving</li>
+              </ul>
+            </div>
+            <div class="td-list cons">
+              <h4>What could break it</h4>
+              <ul>
+                <li>Inventory up 41% QoQ — pre-positioning or over-build?</li>
+                <li>Top four customers now 46% of revenue</li>
+                <li>China-restricted revenue still 8% of the data-center line</li>
+                <li>PE at 48× — no margin for an execution miss</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="td-metrics">
+            <div class="td-metric"><div class="l">Revenue</div><div class="v">$35.1B</div><div class="d">+17% QoQ</div></div>
+            <div class="td-metric"><div class="l">Gross margin</div><div class="v">75.5<span style="font-size:14px">%</span></div><div class="d">+50bp</div></div>
+            <div class="td-metric"><div class="l">Data center</div><div class="v">$30.8B</div><div class="d">+122% YoY</div></div>
+            <div class="td-metric"><div class="l">Forward P/E</div><div class="v">48.2×</div><div class="d dn">peer 32×</div></div>
+          </div>
+          <div class="td-chart">
+            <svg viewBox="0 0 600 140" width="100%" height="140" preserveAspectRatio="none" style="display:block">
+              <defs>
+                <linearGradient id="gfill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#c9361b" stop-opacity="0.25"/>
+                  <stop offset="1" stop-color="#c9361b" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <polyline id="chart" fill="url(#gfill)" stroke="#c9361b" stroke-width="1.5" points=""/>
+              <g id="chartgrid"></g>
+            </svg>
+            <div class="figcap" style="color:rgba(255,255,255,0.55)">Fig. 2 — NVDA · NAV curve modelled at 4% weight vs. the S&amp;P, 90 sessions.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- §3 NUMBERS -->
+<section class="sec" style="padding-top:96px">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-num">III.</div>
+      <div>
+        <div class="sec-kicker">By the numbers · Paper performance</div>
+        <h2 class="sec-title">The swarm has been <em>warming up</em> since January.</h2>
+        <p class="sec-deck">Ninety days of paper trading, $250k notional, no insider information, no private order flow. The numbers below are how a single Claude-powered portfolio manager performed against the S&amp;P 500 over that window.</p>
+      </div>
+    </div>
+
+    <div class="numbers-grid">
+      <div class="num-cell">
+        <div class="big"><em>+18</em><span class="pct">bp</span></div>
+        <div class="lbl">Alpha vs. S&amp;P</div>
+        <div class="sub">Daily excess return, 90-session median. Net of modelled transaction costs.</div>
+      </div>
+      <div class="num-cell">
+        <div class="big">1.82</div>
+        <div class="lbl">Sharpe ratio</div>
+        <div class="sub">Retail-fund peer median: 1.12. Measured over the same window.</div>
+      </div>
+      <div class="num-cell">
+        <div class="big">67<span class="pct">%</span></div>
+        <div class="lbl">Hit rate</div>
+        <div class="sub">n = 486 trades. Median holding period: 8 sessions.</div>
+      </div>
+      <div class="num-cell">
+        <div class="big"><em>−2.8</em><span class="pct">%</span></div>
+        <div class="lbl">Max drawdown</div>
+        <div class="sub">Risk bounded at −10%. Position caps hit twice; overrides zero.</div>
+      </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top:32px">
+      <div class="l">Note to the reader</div>
+      <div class="t">These are paper returns. Past performance does not predict future results, live capital behaves worse than simulated capital, and anyone who tells you otherwise is selling you something. What we can promise is that every trade above was reasoned in full — and every reason is auditable.</div>
+    </div>
+  </div>
+</section>
+
+<!-- §4 VS OLD WAY -->
+<section class="sec" id="vs" style="padding:0;border-bottom:1px solid var(--ink)">
+  <div class="container" style="padding:96px 0 40px">
+    <div class="sec-head" style="padding:0 32px">
+      <div class="sec-num">IV.</div>
+      <div>
+        <div class="sec-kicker">A reckoning · What you leave behind</div>
+        <h2 class="sec-title">Two ways to research <em>a stock</em>.</h2>
+      </div>
+    </div>
+  </div>
+  <div class="vs-grid">
+    <div class="vs-col">
+      <div class="tag">The old way</div>
+      <h3>Scroll. Skim. <em>Guess.</em></h3>
+      <div class="vs-items">
+        <div class="vs-item"><span class="icon">·</span><span class="t">Open 11 browser tabs. Read three analyst notes that disagree.</span></div>
+        <div class="vs-item"><span class="icon">·</span><span class="t">Watch the CNBC hot-take. Trust your gut on the P/E.</span></div>
+        <div class="vs-item"><span class="icon">·</span><span class="t">Scan Reddit. Mistake conviction for signal.</span></div>
+        <div class="vs-item"><span class="icon">·</span><span class="t">Never actually read the 10-Q. It's 84 pages.</span></div>
+        <div class="vs-item"><span class="icon">·</span><span class="t">Buy. Forget to set a stop. Hope.</span></div>
+      </div>
+    </div>
+    <div class="vs-col">
+      <div class="tag">The Daub way</div>
+      <h3>Five agents. <em>One page.</em></h3>
+      <div class="vs-items">
+        <div class="vs-item"><span class="icon">▸</span><span class="t">Filings agent has already diffed this quarter vs. last.</span></div>
+        <div class="vs-item"><span class="icon">▸</span><span class="t">Earnings agent scored the CFO's deflections on the call.</span></div>
+        <div class="vs-item"><span class="icon">▸</span><span class="t">Sentiment agent tracked the 23 news items that matter.</span></div>
+        <div class="vs-item"><span class="icon">▸</span><span class="t">Macro agent confirmed the regime still favors the trade.</span></div>
+        <div class="vs-item"><span class="icon">▸</span><span class="t">Aggregator writes a verdict. Size, entry, stop, target — all stated.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- §5 MANIFESTO -->
+<section class="manifesto" id="manifesto">
+  <div class="man-inner">
+    <div class="man-kick">A Manifesto · From the founders</div>
+    <div class="man-text">
+      <p class="dropcap">For eighty years, the machinery of modern investing was rigged in favor of people with a Bloomberg terminal, a team of analysts, and a phone that rings when Goldman's strategist changes her mind. The retail investor got a delayed quote, a Robinhood card, and whatever the loudest voice on CNBC was selling that morning.</p>
+      <p>We think this arrangement is <em>finished</em>. Not because anyone decided it was — but because a 200-billion-parameter model can now read an S-1 faster than any junior analyst ever could, and remember every word.</p>
+      <p>Daub is the thing we wish we'd had when we were buying our first stocks: a small, tireless research desk that actually reads the document, actually listens to the call, and actually tells you what it thinks — with the reasons laid out so you can disagree.</p>
+      <p>The edge was never information. It was the <em>time and attention</em> to process it. We're giving that back.</p>
+    </div>
+    <div class="man-sig">
+      <div>
+        <div class="name">— Tanmay &amp; the Daub team</div>
+      </div>
+      <div>Brooklyn · April 2026</div>
+    </div>
+  </div>
+</section>
+
+<!-- §6 FAQ -->
+<section class="sec" id="faq">
+  <div class="container">
+    <div class="sec-head">
+      <div class="sec-num">V.</div>
+      <div>
+        <div class="sec-kicker">Things we get asked · FAQ</div>
+        <h2 class="sec-title">Obvious <em>questions</em>, honest answers.</h2>
+      </div>
+    </div>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Is this <em>financial advice?</em></div>
+        <div class="faq-a">No. Daub is a research tool. It produces reasoned theses and paper-traded signals; a human (you) decides what to act on. We're not registered as an investment advisor.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does it trade real money?</div>
+        <div class="faq-a">Not yet. The launch product runs entirely on a paper account via Alpaca. A brokerage-connected tier is on the roadmap once we're comfortable with live execution and regulatory approvals.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What stocks does it cover?</div>
+        <div class="faq-a">At launch: the S&amp;P 500 and roughly 180 mid-caps where filings are timely and liquidity is good. You can pin any ticker and the swarm will start covering it within 24 hours.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why trust an AI with my <em>money?</em></div>
+        <div class="faq-a">Don't. Trust the reasoning. Every Daub signal comes with a full chain — which agent said what, which filing they cited, where they disagreed. If the logic doesn't hold up, don't take the trade.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What's it built on?</div>
+        <div class="faq-a">Claude Opus 4.6 for the heavy reasoning (filings, aggregation); Sonnet 4.6 for the faster loops (sentiment, macro). Data from EDGAR, Polygon, FRED, and a handful of transcript providers.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How much will it cost?</div>
+        <div class="faq-a">Free during beta. After launch, a single tier at a price cheaper than one Bloomberg seat per year, per twenty of our users. We'll share specifics when the waitlist opens.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER CTA -->
+<section class="fcta" id="waitlist">
+  <div class="container">
+    <h2>Read every filing.<br/>Or <em>hire us</em> to.</h2>
+    <p class="deck">Daub opens to the first 500 accounts in early summer. Join the waitlist and we'll send one research sample per week, no spam, no pitch.</p>
+    <form class="wait-form" onsubmit="event.preventDefault();this.querySelector('input').value='';this.querySelector('button').textContent='✓ on the list';this.querySelector('button').style.background='var(--good)'">
+      <input type="email" placeholder="you@something.com" required/>
+      <button type="submit">Join →</button>
+    </form>
+    <div class="count">Current waitlist · <strong>2,847</strong> · invites begin June 2026</div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">Daub<span class="dot"></span>ai</div>
+        <div class="footer-tag">An AI-native hedge fund built for the rest of us. Brooklyn-based, Claude-powered, quietly confident.</div>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <a href="#how">How it works</a>
+        <a href="#teardown">Sample research</a>
+        <a href="#faq">FAQ</a>
+        <a href="#waitlist">Waitlist</a>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a href="#manifesto">Manifesto</a>
+        <a href="#">Whitepaper</a>
+        <a href="#">Press</a>
+        <a href="#">Careers</a>
+      </div>
+      <div>
+        <h4>Elsewhere</h4>
+        <a href="#">Twitter / X</a>
+        <a href="#">GitHub</a>
+        <a href="#">Substack</a>
+        <a href="/cdn-cgi/l/email-protection#0a626f6666654a6e6b7f68246b63"><span class="__cf_email__" data-cfemail="9af2fff6f6f5dafefbeff8b4fbf3">[email&#160;protected]</span></a>
+      </div>
+    </div>
+    <div class="footer-legal">
+      <div>© 2026 Daub Labs Inc.</div>
+      <div class="disclaimer">Daub is a research tool, not an investment advisor. All performance figures reference a paper-trading account. You can and will lose real money investing; please don't take our word for anything.</div>
+    </div>
+  </div>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ─── Live reasoning stream ───
+const events = [
+  {ts:"09:42:14", ag:"FILINGS",  tk:"NVDA", sig:"+", msg:"10-Q just hit. Data-center revenue $30.8B — up 122% year-on-year. The sovereign-AI backlog is disclosed for the first time at roughly $8 billion."},
+  {ts:"09:41:52", ag:"SENTIMENT", tk:"META", sig:"−", msg:"Eleven new items in the last hour. FTC probe into Threads data-sharing widens; Reality Labs loss ran to $4.5B on the quarter."},
+  {ts:"09:41:18", ag:"MACRO",    tk:"*",    sig:"~", msg:"Regime is transitioning. Fed minutes read dovish on the 2026 path; the 2s/10s is un-inverting. Tilting the book toward risk-on."},
+  {ts:"09:40:44", ag:"EARNINGS", tk:"LLY",  sig:"+", msg:"Transcript parsed. CFO confirmed Zepbound label expansion for sleep apnea. TAM math works out to $8–12B at peak."},
+  {ts:"09:40:08", ag:"AGGREGATOR", tk:"AVGO", sig:"+", msg:"Composite +0.82, confidence 0.88. Filings, sentiment, and macro aligned long. Proposing 4% weight — risk check passed."},
+  {ts:"09:39:31", ag:"SENTIMENT", tk:"TSLA", sig:"−", msg:"Three sell-side shops cut Q4 delivery estimates in the last 24 hours. Robotaxi launch pushed to H2 2026."},
+  {ts:"09:38:57", ag:"FILINGS",  tk:"PLTR", sig:"+", msg:"Commercial AIP revenue up 54% YoY. Customer count 143, up 31 sequentially. Net dollar retention 118%."},
+  {ts:"09:38:22", ag:"MACRO",    tk:"*",    sig:"~", msg:"Brent below $72. OPEC+ Q1 quota chatter softens. Energy underweight is working; holding."},
+];
+const streamEl = document.getElementById("stream");
+function renderStream(){
+  streamEl.innerHTML = events.map(e=>`
+    <div class="ev">
+      <div class="ev-head">
+        <span class="mono">${e.ts}</span>
+        <span class="ag">${e.ag}</span>
+        <span class="tk">${e.tk}</span>
+        <span class="${e.sig==='+'?'sig-up':e.sig==='-'?'sig-dn':''}">${e.sig}</span>
+      </div>
+      <div class="ev-msg">${e.msg}</div>
+    </div>
+  `).join("");
+}
+renderStream();
+// rotate: every 3s push a new event to top
+let tickCount = 0;
+setInterval(()=>{
+  const d = new Date();
+  const ts = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+  const rotations = [
+    {ag:"FILINGS",  tk:"AAPL", sig:"~", msg:"Services margin line is stable quarter-over-quarter — no deterioration in the high-margin annuity."},
+    {ag:"SENTIMENT",tk:"JPM",  sig:"+", msg:"Dimon's consumer-resilience framing was picked up favorably across sell-side morning notes."},
+    {ag:"EARNINGS", tk:"COST", sig:"+", msg:"Membership renewal 93%, traffic comps +5.2%. No tariff questions dodged on the call."},
+    {ag:"MACRO",    tk:"*",    sig:"~", msg:"DXY slides another 0.3%. The soft-landing trade is quietly back on."},
+  ];
+  const ev = rotations[tickCount%rotations.length];
+  events.unshift({...ev,ts});
+  if(events.length>10) events.pop();
+  renderStream();
+  tickCount++;
+},4500);
+
+// ─── Marquee band ───
+const bandEl = document.getElementById("band");
+const bandItems = [
+  ["★","Read every 10-Q. Before the market moves."],
+  ["★","Five Claude agents.",  "one portfolio manager"],
+  ["★","Paper-traded. Fully reasoned.","Your edge, quietly compounding."],
+  ["★","Alpha is not information.","It is attention."],
+  ["★","Built in Brooklyn.","Powered by Claude."],
+];
+const buildBand = ()=>bandItems.map(([s,a,b])=>`<span class="band-item"><span class="star">${s}</span> ${a}${b?' <em>'+b+'</em>':''}</span>`).join("");
+bandEl.innerHTML = buildBand()+buildBand();
+
+// ─── Teardown chart ───
+(function(){
+  const pts = [];
+  let v = 100;
+  for(let i=0;i<90;i++){ v += (Math.sin(i/6)*1.2) + (Math.random()-0.42)*1.5 + 0.35; pts.push(v); }
+  const min = Math.min(...pts), max = Math.max(...pts), rng = max-min;
+  const W=600, H=140, pad=6;
+  const poly = pts.map((p,i)=>{
+    const x = pad + (i/(pts.length-1))*(W-pad*2);
+    const y = pad + (1-(p-min)/rng)*(H-pad*2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const chart = document.getElementById("chart");
+  chart.setAttribute("points", `${pad},${H-pad} ${poly} ${W-pad},${H-pad}`);
+  const grid = document.getElementById("chartgrid");
+  for(let i=1;i<4;i++){
+    const y = (H/4)*i;
+    grid.innerHTML += `<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="2 4"/>`;
+  }
+})();
+
+// ─── Clock in masthead ───
+setInterval(()=>{
+  const d = new Date();
+  const el = document.querySelector(".mast-top .date");
+  if(el) el.textContent = d.toLocaleDateString("en-US",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+},30000);
+</script>
+
+</body>
+</html>
