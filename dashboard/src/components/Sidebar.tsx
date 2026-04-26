@@ -3,39 +3,49 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const GROUPS = [
+type Item = {
+  href: string;
+  label: string;
+  icon: string;
+  badge?: number;
+};
+
+const GROUPS: { g: string; items: Item[] }[] = [
   {
     g: "Workspace",
     items: [
-      { href: "/",        label: "Dashboard",   icon: "◉" },
-      { href: "/signals", label: "Signal Desk",  icon: "◆" },
-      { href: "/agents",  label: "Agent Swarm",  icon: "◇" },
+      { href: "/workbench",       label: "Workbench",   icon: "▣" },
+      { href: "/",                label: "Dashboard",   icon: "◨" },
+      { href: "/signals",         label: "Signal Desk", icon: "◈", badge: 7 },
+      { href: "/trades",          label: "Blotter",     icon: "≡" },
     ],
   },
   {
     g: "Research",
     items: [
-      { href: "/research", label: "Research",   icon: "◈" },
-      { href: "/risk",     label: "Risk Radar", icon: "◐" },
-      { href: "/screener", label: "Screener",   icon: "▣" },
+      { href: "/agents",          label: "Agent Swarm", icon: "◉" },
+      { href: "/screener",        label: "Screener",    icon: "⌕" },
+      { href: "/risk",            label: "Risk Radar",  icon: "△" },
+      { href: "/alerts",          label: "Alerts",      icon: "◇", badge: 3 },
     ],
   },
-  {
-    g: "Execution",
-    items: [
-      { href: "/trades",  label: "Blotter",  icon: "▤" },
-      { href: "/alerts",  label: "Alerts",   icon: "▲", badge: 3 },
-    ],
-  },
+];
+
+const WATCHLIST: { t: string; ch: string; dir: "up" | "dn" }[] = [
+  { t: "NVDA", ch: "+6.38", dir: "up" },
+  { t: "LLY",  ch: "+2.02", dir: "up" },
+  { t: "TSLA", ch: "−3.71", dir: "dn" },
+  { t: "AAPL", ch: "−1.21", dir: "dn" },
+  { t: "JPM",  ch: "+3.02", dir: "up" },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div
+    <aside
       style={{
-        width: 212,
+        width: 224,
         background: "var(--bg-1)",
         borderRight: "1px solid var(--line)",
         display: "flex",
@@ -44,128 +54,117 @@ export default function Sidebar() {
         height: "100vh",
         position: "sticky",
         top: 0,
+        overflowY: "auto",
       }}
     >
       {/* Brand */}
       <div
         style={{
-          padding: "16px 18px",
+          padding: "18px 20px",
           display: "flex",
           alignItems: "center",
           gap: 10,
           borderBottom: "1px solid var(--line)",
+          fontSize: 14,
+          fontWeight: 600,
+          letterSpacing: "-0.01em",
         }}
       >
-        <div
+        <span
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 7,
-            background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-d) 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            fontWeight: 700,
-            fontSize: 14,
-            fontFamily: "var(--mono)",
+            width: 16,
+            height: 16,
+            background: "var(--accent)",
+            display: "inline-block",
           }}
-        >
-          d
-        </div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: "-0.01em", color: "var(--fg)" }}>
-            Daub
-          </div>
-          <div
-            className="mono mute"
-            style={{ fontSize: 9.5, letterSpacing: "0.08em", textTransform: "uppercase" }}
-          >
-            research · v0.4
-          </div>
-        </div>
+        />
+        <span>
+          daub<span style={{ color: "var(--fg-muted)", fontWeight: 400 }}>.ai</span>
+        </span>
       </div>
 
       {/* Nav */}
-      <div style={{ padding: "12px 0", flex: 1, overflow: "auto" }}>
+      <div style={{ padding: "6px 0", flex: 1 }}>
         {GROUPS.map((group) => (
-          <div key={group.g} style={{ marginBottom: 14 }}>
+          <div key={group.g} style={{ padding: "14px 10px 6px" }}>
             <div
-              className="mute"
               style={{
-                padding: "4px 18px",
                 fontSize: 10,
                 textTransform: "uppercase",
-                letterSpacing: "0.08em",
+                letterSpacing: "0.14em",
+                color: "var(--fg-ghost)",
+                padding: "2px 10px 10px",
                 fontWeight: 500,
               }}
             >
               {group.g}
             </div>
             {group.items.map((item) => {
-              const active = pathname === item.href;
+              const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={{
-                    margin: "1px 8px",
-                    padding: "7px 10px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    borderRadius: "var(--r-sm)",
-                    background: active ? "var(--accent-bg)" : "transparent",
-                    color: active ? "var(--accent-hi)" : "var(--fg-dim)",
-                    fontSize: 12.5,
-                    fontWeight: active ? 500 : 400,
-                    textDecoration: "none",
-                    transition: "all 80ms",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active)
-                      (e.currentTarget as HTMLElement).style.background = "var(--bg-2)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active)
-                      (e.currentTarget as HTMLElement).style.background = "transparent";
-                  }}
-                >
-                  <span
-                    className="mono"
-                    style={{
-                      width: 16,
-                      textAlign: "center",
-                      color: active ? "var(--accent)" : "var(--fg-muted)",
-                    }}
-                  >
-                    {item.icon}
-                  </span>
-                  <span style={{ flex: 1 }}>{item.label}</span>
-                  {"badge" in item && item.badge && (
-                    <span
-                      className="pill"
-                      style={{
-                        background: "var(--accent)",
-                        color: "#fff",
-                        fontSize: 9,
-                        padding: "1px 6px",
-                      }}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
+                <SideLink key={item.href} item={item} active={!!active} />
               );
             })}
           </div>
         ))}
+
+        {/* Watchlist */}
+        <div style={{ padding: "14px 10px 6px" }}>
+          <div
+            style={{
+              fontSize: 10,
+              textTransform: "uppercase",
+              letterSpacing: "0.14em",
+              color: "var(--fg-ghost)",
+              padding: "2px 10px 10px",
+              fontWeight: 500,
+            }}
+          >
+            Watchlist
+          </div>
+          {WATCHLIST.map((w) => (
+            <Link
+              key={w.t}
+              href={`/workbench/${w.t}`}
+              style={{
+                margin: "1px 0",
+                padding: "6px 10px",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                borderRadius: 3,
+                color: "var(--fg-dim)",
+                fontSize: 13,
+                textDecoration: "none",
+              }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--bg-2)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
+            >
+              <span
+                className="mono"
+                style={{ width: 14, textAlign: "center", color: "var(--fg-ghost)", fontSize: 12 }}
+              >
+                ·
+              </span>
+              <span style={{ flex: 1 }}>{w.t}</span>
+              <span
+                className="mono"
+                style={{
+                  fontSize: 10.5,
+                  color: w.dir === "up" ? "var(--up)" : "var(--down)",
+                }}
+              >
+                {w.ch}
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Footer */}
       <div
         style={{
-          padding: "12px 16px",
+          padding: "14px 18px",
           borderTop: "1px solid var(--line)",
           display: "flex",
           alignItems: "center",
@@ -178,6 +177,7 @@ export default function Sidebar() {
             height: 26,
             borderRadius: "50%",
             background: "var(--bg-3)",
+            border: "1px solid var(--line-2)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -189,11 +189,69 @@ export default function Sidebar() {
           T
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 500, color: "var(--fg)" }}>Tanmay D.</div>
-          <div className="mute" style={{ fontSize: 10 }}>Paper · $186.7k</div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--fg)" }}>Tanmay D.</div>
+          <div className="mute" style={{ fontSize: 10.5 }}>Paper · $186.7k</div>
         </div>
-        <span className="mono mute" style={{ fontSize: 10 }}>⚙</span>
+        <Link href="#" style={{ color: "var(--fg-muted)", fontSize: 13, textDecoration: "none" }}>
+          ⚙
+        </Link>
       </div>
-    </div>
+    </aside>
+  );
+}
+
+function SideLink({ item, active }: { item: Item; active: boolean }) {
+  return (
+    <Link
+      href={item.href}
+      style={{
+        margin: "1px 0",
+        padding: "7px 10px",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        borderRadius: 3,
+        background: active ? "var(--bg-2)" : "transparent",
+        color: active ? "var(--fg)" : "var(--fg-dim)",
+        fontSize: 13,
+        fontWeight: active ? 500 : 400,
+        textDecoration: "none",
+        boxShadow: active ? "inset 2px 0 0 var(--accent)" : "none",
+        transition: "background 80ms",
+      }}
+      onMouseEnter={(e) => {
+        if (!active) (e.currentTarget as HTMLElement).style.background = "var(--bg-2)";
+      }}
+      onMouseLeave={(e) => {
+        if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
+      }}
+    >
+      <span
+        className="mono"
+        style={{
+          width: 14,
+          textAlign: "center",
+          color: active ? "var(--accent)" : "var(--fg-ghost)",
+          fontSize: 12,
+          flexShrink: 0,
+        }}
+      >
+        {item.icon}
+      </span>
+      <span style={{ flex: 1 }}>{item.label}</span>
+      {item.badge && (
+        <span
+          className="mono"
+          style={{
+            marginLeft: "auto",
+            fontSize: 10,
+            color: "var(--fg-muted)",
+            padding: "1px 6px",
+          }}
+        >
+          {item.badge}
+        </span>
+      )}
+    </Link>
   );
 }

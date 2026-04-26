@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, IBM_Plex_Mono } from "next/font/google";
 import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import "./globals.css";
@@ -7,12 +7,13 @@ import "./globals.css";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -26,14 +27,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full`}>
+    <html lang="en" className={`${inter.variable} ${plexMono.variable} h-full`}>
       <head>
         <style>{`
           :root {
             --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
-            --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+            --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
             --sans: var(--font-inter), system-ui, -apple-system, sans-serif;
-            --mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+            --mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
           }
         `}</style>
       </head>
@@ -51,7 +52,7 @@ export default function RootLayout({
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
           <TopBar />
           <main style={{ flex: 1, overflow: "auto" }}>
-            <div style={{ padding: 16 }}>{children}</div>
+            <div style={{ padding: "22px 28px" }}>{children}</div>
           </main>
         </div>
       </body>
