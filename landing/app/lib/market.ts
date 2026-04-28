@@ -86,10 +86,33 @@ export async function fetchChart(
     }
   }
   if (!json) throw new Error(lastErr || `yahoo chart ${symbol} failed`);
-  const r = json?.chart?.result?.[0];
-  if (!r) throw new Error(`yahoo chart ${symbol} empty`);
+  const raw = json?.chart?.result?.[0];
+  if (!raw) throw new Error(`yahoo chart ${symbol} empty`);
+  type YahooChartResult = {
+    meta: {
+      symbol: string;
+      regularMarketPrice: number;
+      chartPreviousClose?: number;
+      previousClose?: number;
+      currency: string;
+      marketState?: string;
+      regularMarketTime: number;
+      fiftyTwoWeekHigh: number;
+      fiftyTwoWeekLow: number;
+      regularMarketDayHigh: number;
+      regularMarketDayLow: number;
+      regularMarketVolume: number;
+      fullExchangeName?: string;
+      exchangeName?: string;
+      longName?: string;
+      shortName?: string;
+    };
+    indicators?: { quote?: Array<{ close?: (number | null)[] }> };
+    timestamp?: number[];
+  };
+  const r = raw as YahooChartResult;
   const m = r.meta;
-  const closes: number[] = r.indicators?.quote?.[0]?.close ?? [];
+  const closes = r.indicators?.quote?.[0]?.close ?? [];
   const timestamps: number[] = r.timestamp ?? [];
   const price = m.regularMarketPrice;
   const prev = m.chartPreviousClose ?? m.previousClose ?? price;
