@@ -121,8 +121,9 @@ export async function fetchChart(
   const cleanClose: number[] = [];
   const cleanTs: number[] = [];
   for (let i = 0; i < closes.length; i++) {
-    if (closes[i] != null) {
-      cleanClose.push(closes[i]);
+    const c = closes[i];
+    if (c != null) {
+      cleanClose.push(c);
       cleanTs.push(timestamps[i]);
     }
   }
