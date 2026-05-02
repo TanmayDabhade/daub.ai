@@ -114,8 +114,7 @@ export default async function Home() {
         </div>
         <div className="mast-mid">
           <div className="mast-title">
-            Daub<span className="dot" />
-            <em>ai</em>
+            SwarmCapital
           </div>
           <nav className="mast-nav">
             <a href="#how">How it works</a>
@@ -155,7 +154,7 @@ export default async function Home() {
               </p>
               <div className="byline">
                 <span>
-                  By <span className="author">The Daub Swarm</span>
+                  By <span className="author">The SwarmCapital Swarm</span>
                 </span>
                 <span>·</span>
                 <span>Paper account, live research</span>
@@ -199,7 +198,7 @@ export default async function Home() {
               </h2>
               <p className="sec-deck">
                 A Wall Street research desk is a room full of analysts with
-                different obsessions. So is Daub — except ours run on Claude,
+                different obsessions. So is SwarmCapital — except ours run on Claude,
                 read every document ever filed, and never take a lunch break.
                 Each agent owns a slice of the truth; an aggregator weighs the
                 evidence and proposes a trade.
@@ -603,7 +602,7 @@ export default async function Home() {
           <div className="highlight-box" style={{ marginTop: 32 }}>
             <div className="l">Note to the reader</div>
             <div className="t">
-              The numbers above update every time this page is requested. Daub
+              The numbers above update every time this page is requested. SwarmCapital
               will eventually publish its own paper-trading ledger in the same
               spirit — every entry timestamped, every rationale auditable.
               Past performance does not predict future results, live capital
@@ -670,7 +669,7 @@ export default async function Home() {
             </div>
           </div>
           <div className="vs-col">
-            <div className="tag">The Daub way</div>
+            <div className="tag">The SwarmCapital way</div>
             <h3>
               Five agents. <em>One page.</em>
             </h3>
@@ -729,7 +728,7 @@ export default async function Home() {
               every word.
             </p>
             <p>
-              Daub is the thing we wish we&apos;d had when we were buying our
+              SwarmCapital is the thing we wish we&apos;d had when we were buying our
               first stocks: a small, tireless research desk that actually reads
               the document, actually listens to the call, and actually tells
               you what it thinks — with the reasons laid out so you can
@@ -743,7 +742,7 @@ export default async function Home() {
           </div>
           <div className="man-sig">
             <div>
-              <div className="name">— Tanmay &amp; the Daub team</div>
+              <div className="name">— Tanmay &amp; the SwarmCapital team</div>
             </div>
             <div>Brooklyn · April 2026</div>
           </div>
@@ -767,7 +766,7 @@ export default async function Home() {
                 Is this <em>financial advice?</em>
               </div>
               <div className="faq-a">
-                No. Daub is a research tool. It produces reasoned theses and
+                No. SwarmCapital is a research tool. It produces reasoned theses and
                 paper-traded signals; a human (you) decides what to act on.
                 We&apos;re not registered as an investment advisor.
               </div>
@@ -794,7 +793,7 @@ export default async function Home() {
                 Why trust an AI with my <em>money?</em>
               </div>
               <div className="faq-a">
-                Don&apos;t. Trust the reasoning. Every Daub signal comes with a
+                Don&apos;t. Trust the reasoning. Every SwarmCapital signal comes with a
                 full chain — which agent said what, which filing they cited,
                 where they disagreed. If the logic doesn&apos;t hold up,
                 don&apos;t take the trade.
@@ -829,7 +828,7 @@ export default async function Home() {
             Or <em>hire us</em> to.
           </h2>
           <p className="deck">
-            Daub opens to the first 500 accounts in early summer. Join the
+            SwarmCapital opens to the first 500 accounts in early summer. Join the
             waitlist and we&apos;ll send one research sample per week, no spam,
             no pitch.
           </p>
@@ -845,7 +844,7 @@ export default async function Home() {
           <div className="footer-grid">
             <div>
               <div className="footer-brand">
-                Daub<span className="dot" />ai
+                SwarmCapital
               </div>
               <div className="footer-tag">
                 An AI-native hedge fund built for the rest of us.
@@ -875,9 +874,9 @@ export default async function Home() {
             </div>
           </div>
           <div className="footer-legal">
-            <div>© 2026 Daub Labs Inc.</div>
+            <div>© 2026 SwarmCapital Labs Inc.</div>
             <div className="disclaimer">
-              Daub is a research tool, not an investment advisor. All
+              SwarmCapital is a research tool, not an investment advisor. All
               performance figures reference a paper-trading account. You can
               and will lose real money investing; please don&apos;t take our
               word for anything.

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Daub.ai — An AI-native hedge fund, built for you.",
+  title: "SwarmCapital — An AI-native hedge fund, built for you.",
   description:
     "Five Claude-powered specialist agents read every 10-Q, listen to every earnings call, and watch every tape — so you don't have to.",
 };
