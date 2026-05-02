@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import ConfBar from "@/components/ConfBar";
 import { supabase } from "@/lib/supabase";
 import type { TradeSignal, AgentAnalysis, UnifiedSignal } from "@/lib/types";
@@ -144,6 +145,9 @@ export default function SignalsPage() {
                   <td style={{ display: "flex", gap: 3 }}>
                     <button className="btn">Review</button>
                     <button className="btn" style={{ background: "var(--up-bg)", color: "var(--up)", borderColor: "transparent" }}>✓</button>
+                    <Link href={`/workbench/${s.t}`} className="btn" style={{ fontSize: 10, whiteSpace: "nowrap" }}>
+                      Chart →
+                    </Link>
                   </td>
                 </tr>
               ))}

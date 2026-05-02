@@ -107,3 +107,39 @@ export interface UnifiedSignal {
   /** Signals array from agent_analyses */
   agent_signals?: Signal[];
 }
+
+export interface SimAccount {
+  cash: number;
+  equity: number;
+  position_value: number;
+  initial_capital: number;
+  realized_pnl: number;
+  total_return_pct: number;
+  drawdown_pct: number;
+}
+
+export interface SimPosition {
+  ticker: string;
+  qty: number;
+  avg_entry_price: number;
+  current_price: number;
+  change_pct: number;
+  market_value: number;
+  unrealized_pnl: number;
+  unrealized_pnl_pct: number;
+}
+
+export interface SimOrder {
+  id: string;
+  ticker: string;
+  direction: "long" | "short";
+  quantity: number;
+  entry_price: number | null;
+  exit_price: number | null;
+  status: "open" | "pending" | "closed" | "cancelled";
+  opened_at: string;
+  closed_at: string | null;
+  pnl: number | null;
+  signal_id: string | null;
+  alpaca_order_id: string | null;
+}

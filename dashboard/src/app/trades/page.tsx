@@ -1,21 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import ConfBar from "@/components/ConfBar";
+import type { SimOrder } from "@/lib/types";
 
-interface Order {
-  id: string;
-  created_at: string;
-  symbol: string;
-  side: string;
-  qty: string;
-  filled_qty: string;
-  limit_price: string | null;
-  filled_avg_price: string | null;
-  status: string;
-  type: string;
-  time_in_force: string;
-}
 
 interface BacktestStats {
   finalValue: number;
@@ -46,13 +35,20 @@ const DEMO_BLOTTER = [
 function BacktestPanel() {
   const [symbol, setSymbol] = useState("NVDA");
   const [strategy, setStrategy] = useState("sma_crossover");
-  const [startDate, setStartDate] = useState("2024-01-01");
+  const [startDate, setStartDate] = useState("2023-01-01");
   const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
   const [capital, setCapital] = useState("100000");
   const [fastPeriod, setFastPeriod] = useState("20");
   const [slowPeriod, setSlowPeriod] = useState("50");
   const [rsiOversold, setRsiOversold] = useState("30");
   const [rsiOverbought, setRsiOverbought] = useState("70");
+  const [macdFast, setMacdFast] = useState("12");
+  const [macdSlow, setMacdSlow] = useState("26");
+  const [macdSignal, setMacdSignal] = useState("9");
+  const [bbPeriod, setBbPeriod] = useState("20");
+  const [bbStd, setBbStd] = useState("2");
+  const [momPeriod, setMomPeriod] = useState("20");
+  const [momThreshold, setMomThreshold] = useState("5");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,15 +58,28 @@ function BacktestPanel() {
     setError(null);
     setResult(null);
     try {
+      const params: Record<string, number> = {};
+      if (strategy === "sma_crossover") {
+        params.fastPeriod = parseInt(fastPeriod);
+        params.slowPeriod = parseInt(slowPeriod);
+      } else if (strategy === "rsi_mean_revert") {
+        params.rsiOversold = parseInt(rsiOversold);
+        params.rsiOverbought = parseInt(rsiOverbought);
+      } else if (strategy === "macd") {
+        params.macdFast = parseInt(macdFast);
+        params.macdSlow = parseInt(macdSlow);
+        params.macdSignal = parseInt(macdSignal);
+      } else if (strategy === "bollinger") {
+        params.bbPeriod = parseInt(bbPeriod);
+        params.bbStd = parseFloat(bbStd);
+      } else if (strategy === "momentum") {
+        params.momPeriod = parseInt(momPeriod);
+        params.momThreshold = parseFloat(momThreshold);
+      }
       const body = {
         symbol: symbol.toUpperCase(),
         strategy,
-        params: {
-          fastPeriod: parseInt(fastPeriod),
-          slowPeriod: parseInt(slowPeriod),
-          rsiOversold: parseInt(rsiOversold),
-          rsiOverbought: parseInt(rsiOverbought),
-        },
+        params,
         startDate,
         endDate,
         initialCapital: parseInt(capital),
@@ -94,7 +103,7 @@ function BacktestPanel() {
     <div className="card">
       <div className="card-head">
         <h3>Backtest Simulator</h3>
-        <span className="sub">historical strategy simulation · Alpaca + Yahoo Finance data</span>
+        <span className="sub">historical strategy simulation · Yahoo Finance data</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
         {/* Config */}
@@ -128,10 +137,13 @@ function BacktestPanel() {
 
             <div>
               <div className="mute" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Strategy</div>
-              <div style={{ display: "flex", gap: 4 }}>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 {[
-                  { v: "sma_crossover",   l: "SMA Crossover" },
-                  { v: "rsi_mean_revert", l: "RSI Mean Revert" },
+                  { v: "sma_crossover",   l: "SMA X" },
+                  { v: "rsi_mean_revert", l: "RSI" },
+                  { v: "macd",            l: "MACD" },
+                  { v: "bollinger",       l: "Bollinger" },
+                  { v: "momentum",        l: "Momentum" },
                   { v: "buy_hold",        l: "Buy & Hold" },
                 ].map((s) => (
                   <button
@@ -171,6 +183,52 @@ function BacktestPanel() {
                 <div>
                   <div className="mute" style={{ fontSize: 10, marginBottom: 4 }}>RSI Overbought</div>
                   <input value={rsiOverbought} onChange={(e) => setRsiOverbought(e.target.value)}
+                    style={{ width: 64, padding: "5px 8px", background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: "var(--r-sm)", color: "var(--fg)", fontSize: 12 }} />
+                </div>
+              </div>
+            )}
+
+            {strategy === "macd" && (
+              <div style={{ display: "flex", gap: 10 }}>
+                {[
+                  { l: "Fast EMA", v: macdFast, s: setMacdFast },
+                  { l: "Slow EMA", v: macdSlow, s: setMacdSlow },
+                  { l: "Signal",   v: macdSignal, s: setMacdSignal },
+                ].map(({ l, v, s }) => (
+                  <div key={l}>
+                    <div className="mute" style={{ fontSize: 10, marginBottom: 4 }}>{l}</div>
+                    <input value={v} onChange={(e) => s(e.target.value)}
+                      style={{ width: 56, padding: "5px 8px", background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: "var(--r-sm)", color: "var(--fg)", fontSize: 12 }} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {strategy === "bollinger" && (
+              <div style={{ display: "flex", gap: 10 }}>
+                <div>
+                  <div className="mute" style={{ fontSize: 10, marginBottom: 4 }}>Period</div>
+                  <input value={bbPeriod} onChange={(e) => setBbPeriod(e.target.value)}
+                    style={{ width: 64, padding: "5px 8px", background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: "var(--r-sm)", color: "var(--fg)", fontSize: 12 }} />
+                </div>
+                <div>
+                  <div className="mute" style={{ fontSize: 10, marginBottom: 4 }}>Std Dev</div>
+                  <input value={bbStd} onChange={(e) => setBbStd(e.target.value)}
+                    style={{ width: 64, padding: "5px 8px", background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: "var(--r-sm)", color: "var(--fg)", fontSize: 12 }} />
+                </div>
+              </div>
+            )}
+
+            {strategy === "momentum" && (
+              <div style={{ display: "flex", gap: 10 }}>
+                <div>
+                  <div className="mute" style={{ fontSize: 10, marginBottom: 4 }}>Lookback</div>
+                  <input value={momPeriod} onChange={(e) => setMomPeriod(e.target.value)}
+                    style={{ width: 64, padding: "5px 8px", background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: "var(--r-sm)", color: "var(--fg)", fontSize: 12 }} />
+                </div>
+                <div>
+                  <div className="mute" style={{ fontSize: 10, marginBottom: 4 }}>Threshold %</div>
+                  <input value={momThreshold} onChange={(e) => setMomThreshold(e.target.value)}
                     style={{ width: 64, padding: "5px 8px", background: "var(--bg-2)", border: "1px solid var(--line-2)", borderRadius: "var(--r-sm)", color: "var(--fg)", fontSize: 12 }} />
                 </div>
               </div>
@@ -224,6 +282,7 @@ function BacktestPanel() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                 {[
                   { l: "Total Return",  v: `${result.stats.totalReturn >= 0 ? "+" : ""}${result.stats.totalReturn}%`, cls: result.stats.totalReturn >= 0 ? "up" : "down" },
+                  { l: "CAGR",          v: `${(result.stats as Record<string,number>).cagr >= 0 ? "+" : ""}${((result.stats as Record<string,number>).cagr ?? 0).toFixed(1)}%`, cls: (result.stats as Record<string,number>).cagr >= 0 ? "up" : "down" },
                   { l: "Sharpe Ratio",  v: result.stats.sharpe.toFixed(2), cls: result.stats.sharpe >= 1 ? "up" : "" },
                   { l: "Max Drawdown",  v: `${result.stats.maxDrawdown.toFixed(1)}%`, cls: "down" },
                   { l: "Win Rate",      v: `${result.stats.winRate}%`, cls: result.stats.winRate >= 50 ? "up" : "down" },
@@ -321,7 +380,7 @@ function OrderEntry() {
 
   return (
     <div className="card">
-      <div className="card-head"><h3>Manual Order Entry</h3><span className="sub">paper account · Alpaca</span></div>
+      <div className="card-head"><h3>Manual Order Entry</h3><span className="sub">paper account · sim broker</span></div>
       <div style={{ padding: "14px 18px", display: "flex", flexDirection: "column", gap: 10, fontSize: 11.5 }}>
         <div style={{ display: "flex", gap: 8 }}>
           <div style={{ flex: 1, padding: "7px 12px", background: "var(--bg-2)", borderRadius: "var(--r-sm)" }}>
@@ -383,27 +442,31 @@ function OrderEntry() {
 
 // ── Blotter page ──────────────────────────────────────────────────────────
 export default function BlotterPage() {
-  const [alpacaOrders, setAlpacaOrders] = useState<Order[]>([]);
+  const [simOrders, setSimOrders] = useState<SimOrder[]>([]);
   const [statusFilter, setStatusFilter] = useState("All");
   const [tab, setTab] = useState<"blotter" | "backtest">("blotter");
 
   useEffect(() => {
     fetch("/api/trading?action=orders")
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setAlpacaOrders(data); })
+      .then((data) => { if (data?.orders) setSimOrders(data.orders); })
       .catch(() => {});
   }, []);
 
-  const displayRows = alpacaOrders.length
-    ? alpacaOrders.map((o) => ({
+  const STATUS_LABEL: Record<string, string> = {
+    open: "Filled", pending: "Pending", closed: "Closed", cancelled: "Cancelled",
+  };
+
+  const displayRows = simOrders.length
+    ? simOrders.map((o) => ({
         id: o.id.slice(0, 8),
-        ts: new Date(o.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-        tk: o.symbol,
-        dir: o.side.charAt(0).toUpperCase() + o.side.slice(1),
-        qty: parseFloat(o.filled_qty || o.qty),
-        px: parseFloat(o.filled_avg_price ?? "0"),
-        n: parseFloat(o.filled_avg_price ?? "0") * parseFloat(o.filled_qty || o.qty),
-        st: o.status.charAt(0).toUpperCase() + o.status.slice(1),
+        ts: new Date(o.opened_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        tk: o.ticker,
+        dir: o.direction === "long" ? "Buy" : "Sell",
+        qty: o.quantity,
+        px: o.entry_price ?? 0,
+        n: (o.entry_price ?? 0) * o.quantity,
+        st: STATUS_LABEL[o.status] ?? o.status,
         c: 0.75,
         lat: "—",
       }))
@@ -434,7 +497,7 @@ export default function BlotterPage() {
             <div className="card-head">
               <h3>Blotter</h3>
               <span className="sub">
-                {alpacaOrders.length > 0 ? "Alpaca paper account" : "demo data"}
+                {simOrders.length > 0 ? "sim account" : "demo data"}
               </span>
               <span style={{ flex: 1 }} />
               {["All", "Filled", "Pending"].map((f) => (
@@ -458,7 +521,11 @@ export default function BlotterPage() {
                     <tr key={r.id}>
                       <td className="mute mono">{r.id}</td>
                       <td className="mute">{r.ts}</td>
-                      <td><span className="tkr">{r.tk}</span></td>
+                      <td>
+                        <Link href={`/workbench/${r.tk}`} className="tkr" style={{ textDecoration: "none" }}>
+                          {r.tk}
+                        </Link>
+                      </td>
                       <td>
                         <span className={"pill " + (r.dir === "Buy" ? "up" : r.dir === "Sell" ? "dn" : "acc")}>
                           {r.dir}
