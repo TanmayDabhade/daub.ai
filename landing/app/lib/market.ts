@@ -70,8 +70,13 @@ export async function fetchChart(
     "https://query1.finance.yahoo.com",
     "https://query2.finance.yahoo.com",
   ];
+  type YahooResult = {
+    meta: Record<string, any>;
+    timestamp?: number[];
+    indicators?: { quote?: Array<{ close?: Array<number | null> }> };
+  };
   let json: {
-    chart?: { result?: Array<Record<string, unknown>>; error?: unknown };
+    chart?: { result?: YahooResult[]; error?: unknown };
   } | null = null;
   let lastErr = "";
   for (let attempt = 0; attempt < 3 && !json; attempt++) {
@@ -89,7 +94,7 @@ export async function fetchChart(
   const r = json?.chart?.result?.[0];
   if (!r) throw new Error(`yahoo chart ${symbol} empty`);
   const m = r.meta;
-  const closes: number[] = r.indicators?.quote?.[0]?.close ?? [];
+  const closes: Array<number | null> = r.indicators?.quote?.[0]?.close ?? [];
   const timestamps: number[] = r.timestamp ?? [];
   const price = m.regularMarketPrice;
   const prev = m.chartPreviousClose ?? m.previousClose ?? price;
@@ -98,8 +103,9 @@ export async function fetchChart(
   const cleanClose: number[] = [];
   const cleanTs: number[] = [];
   for (let i = 0; i < closes.length; i++) {
-    if (closes[i] != null) {
-      cleanClose.push(closes[i]);
+    const c = closes[i];
+    if (c != null) {
+      cleanClose.push(c);
       cleanTs.push(timestamps[i]);
     }
   }
